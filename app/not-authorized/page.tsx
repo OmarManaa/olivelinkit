@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function NotAuthorized(){return <main style={{minHeight:"100vh",display:"grid",placeItems:"center",background:"#f4f6fa",padding:24}}><section style={{maxWidth:520,background:"white",padding:36,border:"1px solid #e2e7ef",borderRadius:14,textAlign:"center"}}><h1 style={{fontSize:24}}>Administrator access only</h1><p style={{color:"#64748b",lineHeight:1.6}}>This account is authenticated but is not authorised to access the business console.</p><Link className="button" href="/">Return to website</Link></section></main>}
