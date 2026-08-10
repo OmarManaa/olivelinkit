@@ -2,18 +2,29 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
-import { customers } from "../../admin-data";
+import { useEffect, useMemo, useState } from "react";
+import { customers, jobs, quotes } from "../../admin-data";
+import { CustomerRecordForm } from "../../customer-record-form";
+import { readCustomerAndProspectRecords } from "../../customers-store";
 import { InventoryItemForm } from "../../inventory-item-form";
-import { saveJobRecord, serviceTypeFor } from "../../jobs-store";
-import { saveQuoteDraft } from "../../quotes-store";
+import { updateSupportRequestStatus } from "../../../support-requests-store";
+import { readSupportRequests, type SupportRequest } from "../../../support-requests-store";
+import { saveFollowupRecord } from "../../followups-store";
+import { createManualInvoiceRecord } from "../../invoices-store";
+import { readJobs, saveJobRecord, serviceTypeFor } from "../../jobs-store";
+import { readQuoteDrafts, saveQuoteDraft } from "../../quotes-store";
 
 type AdminRecordFormProps = {
   section: string;
   fields: string[];
 };
 
-const customerSections = new Set(["jobs", "quotes", "followups"]);
+const customerSections = new Set(["jobs", "quotes", "invoices", "followups"]);
+
+type RelatedRecordOption = {
+  value: string;
+  label: string;
+};
 
 export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
   const router = useRouter();
@@ -32,12 +43,48 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
   const sourceExpiry = searchParams.get("expiresAt") ?? "";
   const sourceQuantity = searchParams.get("quantity") ?? "";
   const sourceUnitPrice = searchParams.get("unitPrice") ?? "";
+  const [customerRecords, setCustomerRecords] = useState(customers);
+  const [jobRecords, setJobRecords] = useState(jobs);
+  const [quoteRecords, setQuoteRecords] = useState(quotes);
+  const [requestRecords, setRequestRecords] = useState<SupportRequest[]>([]);
+
+  useEffect(() => {
+    const refresh = () => setCustomerRecords(readCustomerAndProspectRecords(customers));
+    const timer = window.setTimeout(refresh, 0);
+    window.addEventListener("customers-updated", refresh);
+    window.addEventListener("prospects-updated", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("customers-updated", refresh);
+      window.removeEventListener("prospects-updated", refresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    const refresh = () => {
+      setJobRecords(readJobs(jobs));
+      const savedQuotes = readQuoteDrafts();
+      const savedReferences = new Set(savedQuotes.map((quote) => quote.reference));
+      setQuoteRecords([...savedQuotes, ...quotes.filter((quote) => !savedReferences.has(quote.reference))]);
+      setRequestRecords(readSupportRequests());
+    };
+    const timer = window.setTimeout(refresh, 0);
+    window.addEventListener("jobs-updated", refresh);
+    window.addEventListener("quote-drafts-updated", refresh);
+    window.addEventListener("support-requests-updated", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("jobs-updated", refresh);
+      window.removeEventListener("quote-drafts-updated", refresh);
+      window.removeEventListener("support-requests-updated", refresh);
+    };
+  }, []);
 
   const customerOptions = useMemo(() => {
-    const existing = customers.map((customer) => ({ name: customer.name, type: customer.type, summary: customer.devices, status: customer.status }));
+    const existing = customerRecords.map((customer) => ({ name: customer.name, type: customer.type, summary: customer.devices, status: customer.status }));
     if (!sourceCustomer || existing.some((customer) => customer.name === sourceCustomer)) return existing;
     return [{ name: sourceCustomer, type: "Pending", summary: [sourceEmail, sourcePhone].filter(Boolean).join(" - ") || "New website request", status: requestId || sourceIssueType || "Not converted yet" }, ...existing];
-  }, [requestId, sourceCustomer, sourceEmail, sourceIssueType, sourcePhone]);
+  }, [customerRecords, requestId, sourceCustomer, sourceEmail, sourceIssueType, sourcePhone]);
 
   const defaultExpiry = useMemo(() => {
     const date = new Date();
@@ -58,6 +105,20 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
     return customerOptions.find((customer) => customer.name === customerName);
   }, [customerName, customerOptions]);
 
+  const relatedRecordOptions = useMemo(() => {
+    const records = new Map<string, RelatedRecordOption>();
+    for (const job of jobRecords) {
+      records.set(job.reference, { value: job.reference, label: `Job - ${job.customer} - ${job.issue}` });
+    }
+    for (const quote of quoteRecords) {
+      records.set(quote.reference, { value: quote.reference, label: `Quote - ${quote.customer} - ${quote.title}` });
+    }
+    for (const request of requestRecords) {
+      records.set(request.id, { value: request.id, label: `Request - ${request.name} - ${request.issueType}` });
+    }
+    return Array.from(records.values()).sort((left, right) => left.value.localeCompare(right.value));
+  }, [jobRecords, quoteRecords, requestRecords]);
+
   const showCustomerLookup = customerSections.has(section);
   const visibleFields = showCustomerLookup ? fields.filter((field) => field !== "Customer") : fields;
 
@@ -66,6 +127,12 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
     if (label === "Device") return sourceDevice;
     if (label === "Priority") return sourcePriority;
     if (label === "Related job" && requestId) return requestId;
+    if (label === "Related record" && requestId) return requestId;
+    if (label === "Quantity") return sourceQuantity || "1";
+    if (label === "Unit price") return sourceUnitPrice || "0";
+    if (label === "Channel") return "Email";
+    if (label === "Owner") return "Omar";
+    if (label === "Status") return "Scheduled";
     return "";
   }
 
@@ -87,6 +154,7 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
         unitPrice: Number(unitPrice) || 0,
         notes,
       });
+      if (requestId.startsWith("REQ-")) updateSupportRequestStatus(requestId, "Follow-up");
     }
     if (section === "jobs") {
       saveJobRecord({
@@ -100,7 +168,63 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
         serviceType: sourceServiceType || (sourceIssueType ? serviceTypeFor(sourceIssueType) : "Workshop repair"),
       });
     }
+    if (section === "invoices") {
+      const quantity = Number(valueFor("Quantity")) || 1;
+      const unitPrice = Number(valueFor("Unit price")) || 0;
+      createManualInvoiceRecord({
+        customer: customerName,
+        relatedJob: valueFor("Related job") || requestId || "Not linked",
+        description: valueFor("Description") || "Invoice line item",
+        quantity,
+        unitPrice,
+        notes,
+      });
+    }
+    if (section === "followups") {
+      saveFollowupRecord({
+        customer: customerName,
+        reason: valueFor("Reason") || notes || "Follow up with customer",
+        related: valueFor("Related record") || requestId || "Not linked",
+        dueAt: valueFor("Due date") || "Tomorrow",
+        channel: (valueFor("Channel") || "Email") as "WhatsApp" | "Email" | "Phone",
+        owner: valueFor("Owner") || "Omar",
+        status: (valueFor("Status") || "Scheduled") as "Planned" | "Scheduled" | "Due" | "Waiting" | "Overdue" | "Completed",
+        outcome: notes || undefined,
+      });
+    }
     router.push(`/admin/${section}`);
+  }
+
+  function fieldControl(label: string) {
+    if (label === "Related job" || label === "Related record") {
+      return <input list="related-record-options" onChange={(event) => setFieldValues((current) => ({ ...current, [label]: event.target.value }))} placeholder="Search or type a job, quote, or request ID" type="search" value={valueFor(label)} />;
+    }
+    if (label === "Channel") {
+      return (
+        <select onChange={(event) => setFieldValues((current) => ({ ...current, [label]: event.target.value }))} value={valueFor(label)}>
+          <option>Email</option>
+          <option>WhatsApp</option>
+          <option>Phone</option>
+        </select>
+      );
+    }
+    if (label === "Status") {
+      return (
+        <select onChange={(event) => setFieldValues((current) => ({ ...current, [label]: event.target.value }))} value={valueFor(label)}>
+          <option>Planned</option>
+          <option>Scheduled</option>
+          <option>Due</option>
+          <option>Waiting</option>
+          <option>Overdue</option>
+          <option>Completed</option>
+        </select>
+      );
+    }
+    return <input onChange={(event) => setFieldValues((current) => ({ ...current, [label]: event.target.value }))} value={valueFor(label)} placeholder={label} />;
+  }
+
+  if (section === "customers") {
+    return <CustomerRecordForm />;
   }
 
   if (section === "quotes") {
@@ -111,7 +235,7 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
     return (
       <form className="admin-form quote-form">
         <label>
-          <span>Customer</span>
+          <span>Customer or prospect</span>
           <select value={customerName} onChange={(event) => setCustomerName(event.target.value)}>
             {customerOptions.map((customer) => <option key={customer.name} value={customer.name}>{customer.name} - {customer.type}</option>)}
           </select>
@@ -125,8 +249,11 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
         )}
         <label>
           <span>Related job or request</span>
-          <input onChange={(event) => setFieldValues((current) => ({ ...current, "Related job": event.target.value }))} value={valueFor("Related job")} placeholder="Job, quote request, or support request ID" />
+          <input list="related-record-options" onChange={(event) => setFieldValues((current) => ({ ...current, "Related job": event.target.value }))} placeholder="Search or type a job, quote, or request ID" type="search" value={valueFor("Related job")} />
         </label>
+        <datalist id="related-record-options">
+          {relatedRecordOptions.map((record) => <option key={record.value} label={record.label} value={record.value} />)}
+        </datalist>
         <label>
           <span>Expiry date</span>
           <input onChange={(event) => setExpiryDate(event.target.value)} type="date" value={expiryDate} />
@@ -171,10 +298,13 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
 
   return (
     <form className="admin-form">
+      <datalist id="related-record-options">
+        {relatedRecordOptions.map((record) => <option key={record.value} label={record.label} value={record.value} />)}
+      </datalist>
       {showCustomerLookup && (
         <>
           <label>
-            <span>Customer</span>
+            <span>Customer or prospect</span>
             <select value={customerName} onChange={(event) => setCustomerName(event.target.value)}>
               {customerOptions.map((customer) => <option key={customer.name} value={customer.name}>{customer.name} - {customer.type}</option>)}
             </select>
@@ -191,7 +321,7 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
       {visibleFields.map((label) => (
         <label key={label}>
           <span>{label}</span>
-          <input onChange={(event) => setFieldValues((current) => ({ ...current, [label]: event.target.value }))} value={valueFor(label)} placeholder={label} />
+          {fieldControl(label)}
         </label>
       ))}
       <label className="full">

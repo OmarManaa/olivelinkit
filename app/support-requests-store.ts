@@ -5,6 +5,17 @@ export type SupportRequest = {
   email?: string;
   phone?: string;
   details: string;
+  businessContext?: string;
+  selectedService?: string;
+  selectedItem?: {
+    sku: string;
+    name: string;
+    category?: string;
+    condition?: string;
+    salePrice?: number;
+    quantity?: number;
+    imageUrl?: string;
+  };
   status: "New" | "Replied" | "Follow-up" | "Converted" | "Closed";
   createdAt: string;
   lastAction?: string;
@@ -26,25 +37,40 @@ export function readSupportRequests(): SupportRequest[] {
   }
 }
 
-export function saveSupportRequest(input: Pick<SupportRequest, "issueType" | "name" | "details"> & Partial<Pick<SupportRequest, "email" | "phone">>) {
-  const requests = readSupportRequests();
-  const request: SupportRequest = {
-    id: `REQ-${Date.now().toString().slice(-6)}`,
-    issueType: input.issueType,
-    name: input.name || "Website visitor",
-    email: input.email?.trim() || undefined,
-    phone: input.phone?.trim() || undefined,
-    details: input.details || "No details provided yet.",
-    status: "New",
-    createdAt: new Date().toLocaleString(),
-  };
+export async function submitSupportRequest(input: Pick<SupportRequest, "issueType" | "name" | "details"> & Partial<Pick<SupportRequest, "email" | "phone" | "businessContext" | "selectedService" | "selectedItem">> & { company?: string }) {
+  const response = await fetch("/api/support-requests", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json() as { request?: SupportRequest; error?: string };
+  if (!response.ok || !payload.request) throw new Error(payload.error || "Your request could not be sent.");
 
-  writeSupportRequests([request, ...requests]);
-  return request;
+  writeSupportRequests([payload.request, ...readSupportRequests().filter((request) => request.id !== payload.request?.id)]);
+  return payload.request;
 }
 
-export function updateSupportRequestStatus(id: string, status: SupportRequest["status"]) {
-  const requests = readSupportRequests().map((request) => request.id === id ? { ...request, status, lastAction: new Date().toLocaleString() } : request);
+export async function updateSupportRequestStatus(id: string, status: SupportRequest["status"]) {
+  const previous = readSupportRequests();
+  const lastAction = new Date().toISOString();
+  const requests = previous.map((request) => request.id === id ? { ...request, status, lastAction } : request);
+  writeSupportRequests(requests);
+  const response = await fetch("/api/support-requests", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id, status }),
+  });
+  const payload = await response.json().catch(() => ({})) as { request?: SupportRequest; error?: string };
+  if (!response.ok || !payload.request) {
+    writeSupportRequests(previous);
+    throw new Error(payload.error || "The support request could not be updated.");
+  }
+  writeSupportRequests(previous.map((request) => request.id === id ? payload.request! : request));
+  return payload.request;
+}
+
+export function replaceSupportRequests(requests: SupportRequest[]) {
+  if (typeof window === "undefined") return;
   writeSupportRequests(requests);
 }
 

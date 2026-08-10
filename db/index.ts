@@ -2,6 +2,12 @@ import { env } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
 
+type RuntimeEnvironment = {
+  DB?: D1Database;
+  BUCKET?: R2Bucket;
+  SUPPORT_NOTIFICATION_WEBHOOK_URL?: string;
+};
+
 export function getDb() {
   if (!env.DB) {
     throw new Error(
@@ -10,4 +16,16 @@ export function getDb() {
   }
 
   return drizzle(env.DB, { schema });
+}
+
+export function getRuntimeEnvironment() {
+  return env as RuntimeEnvironment;
+}
+
+export function getBucket() {
+  const bucket = getRuntimeEnvironment().BUCKET;
+  if (!bucket) {
+    throw new Error("Cloudflare R2 binding `BUCKET` is unavailable.");
+  }
+  return bucket;
 }

@@ -5,24 +5,35 @@ import { useEffect, useState } from "react";
 import { ServiceIcon } from "../service-icon";
 import { defaultWebsiteServices, serviceIconOptions, type ServiceIconKey, type WebsiteService } from "../website-services-data";
 import { readWebsiteServices, resetWebsiteServices, saveWebsiteServices } from "../website-services-store";
+import { persistAdminState } from "../persistence-client";
 
 const requestTypes = ["Computer repair", "Business IT", "Network or Wi-Fi", "Microsoft 365 or email", "Security", "Remote support", "Quote request", "Equipment enquiry"];
 
 export function WebsiteServicesEditor() {
   const [services, setServices] = useState<WebsiteService[]>(defaultWebsiteServices);
   const [saved, setSaved] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    setServices(readWebsiteServices());
+    const refresh = () => setServices(readWebsiteServices());
+    const timer = window.setTimeout(refresh, 0);
+    window.addEventListener("website-services-updated", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("website-services-updated", refresh);
+    };
   }, []);
 
   function updateService(id: string, field: keyof WebsiteService, value: string) {
     setServices((current) => current.map((service) => service.id === id ? { ...service, [field]: value } : service));
   }
 
-  function saveAll() {
+  async function saveAll() {
+    setIsSaving(true);
     saveWebsiteServices(services);
-    setSaved("Service cards saved. Refresh the public website to see the latest cards.");
+    const persisted = await persistAdminState("site-services", services);
+    setSaved(persisted ? "Service cards published." : "Saved in this local preview. Apply the D1 migration before treating this as a live publish.");
+    setIsSaving(false);
   }
 
   function addService() {
@@ -34,8 +45,9 @@ export function WebsiteServicesEditor() {
     setServices((current) => current.filter((service) => service.id !== id));
   }
 
-  function resetAll() {
+  async function resetAll() {
     resetWebsiteServices();
+    await persistAdminState("site-services", null);
     setServices(defaultWebsiteServices);
     setSaved("Service cards reset to the default website copy.");
   }
@@ -44,9 +56,9 @@ export function WebsiteServicesEditor() {
     <section className="services-editor">
       <div className="editor-actions">
         <button className="button button-ghost" onClick={addService} type="button">Add service</button>
-        <button className="button button-ghost" onClick={resetAll} type="button">Reset defaults</button>
+        <button className="button button-ghost" onClick={() => { void resetAll(); }} type="button">Reset defaults</button>
         <Link className="button button-ghost" href="/#services">Preview website</Link>
-        <button className="button" onClick={saveAll} type="button">Save service cards</button>
+        <button className="button" disabled={isSaving} onClick={() => { void saveAll(); }} type="button">{isSaving ? "Publishing..." : "Publish service cards"}</button>
       </div>
       {saved && <div className="assistant-saved">{saved}</div>}
       <div className="services-editor-grid">

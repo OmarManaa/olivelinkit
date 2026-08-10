@@ -12,6 +12,6 @@ export async function requireAdmin() {
     return { email: ADMIN_EMAIL, displayName: "Omar Manaa (local)", fullName: "Omar Manaa" };
   }
 
-  if (!user) redirect(`/signin-with-chatgpt?return_to=${encodeURIComponent("/admin")}`);
+  if (!user) redirect("/not-authorized");
   redirect("/not-authorized");
 }

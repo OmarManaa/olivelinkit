@@ -13,6 +13,8 @@ Local-first web application for a Melbourne home and small-business IT service.
 - data model for customers, devices, jobs, job notes, quotes, quote line items, inventory and file metadata
 - D1-ready structured data and R2-ready file/image storage bindings
 - generated database migration under `drizzle/`
+- shared D1 persistence for public support enquiries and published website/admin state
+- R2-backed uploads for public equipment and hero images
 - responsive desktop/tablet/mobile layouts
 
 ## Run locally in VS Code / Windows
@@ -68,20 +70,34 @@ This avoids merging customers by name and gives the system a safe base for futur
 
 ## V1 vs next operational milestone
 
-This version is ready for local review of the design, navigation, data structure and admin dashboard. Before treating the application as the live operational system, complete and test the following workflows:
+This version is ready for local review and includes server-backed support requests, content publishing, admin-state sync, and R2 media uploads. Before treating the application as the live operational system, configure the real hosting bindings and complete the following checks:
 
-1. create/edit customers and devices
-2. create jobs and move them through statuses
-3. quote creation, GST totals, PDF and accept/reject flow
-4. inventory adjustments and stock deduction
-5. R2 equipment/product photo uploads
-6. customer contact/support request form delivery
-7. backup/export and restore strategy
-8. production authentication/access configuration
-9. audit logging for sensitive admin changes
-10. end-to-end browser and mobile testing
+1. apply the D1 migrations to the production database
+2. configure the `DB` D1 binding and `BUCKET` R2 binding for production
+3. set `NEXT_PUBLIC_SITE_URL` to the final HTTPS public domain for sitemap generation
+4. optionally set `SUPPORT_NOTIFICATION_WEBHOOK_URL` to receive new-enquiry notifications in your email/workflow provider
+5. configure and test production authentication/access controls
+6. create/edit customers and devices, then verify sync from a second browser/device
+7. run quote, invoice, payment, inventory, and backup/restore workflows with non-sensitive test data
+8. complete end-to-end desktop and mobile browser testing
 
 Do not enter real customer information while testing the V1 locally.
+
+### Database migrations
+
+The repository includes `wrangler.jsonc` for local D1/R2 testing. After the production D1 binding has been connected to the correct database, apply migrations with:
+
+```powershell
+npx wrangler d1 migrations apply DB --remote
+```
+
+For local preview testing, use:
+
+```powershell
+npx wrangler d1 migrations apply DB --local --persist-to .wrangler/state
+```
+
+Use `SUPPORT_NOTIFICATION_WEBHOOK_URL` only for a trusted HTTPS endpoint. The support request itself remains in D1 even when that optional notification endpoint is unavailable.
 
 ## Production build
 

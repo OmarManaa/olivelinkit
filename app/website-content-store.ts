@@ -9,8 +9,12 @@ function mergeContent(input: Partial<WebsiteContent>) {
     ...defaultWebsiteContent,
     ...input,
     trustItems: input.trustItems?.length ? input.trustItems : defaultWebsiteContent.trustItems,
+    serviceHighlights: input.serviceHighlights?.length ? input.serviceHighlights : defaultWebsiteContent.serviceHighlights,
+    testimonials: input.testimonials?.length ? input.testimonials : defaultWebsiteContent.testimonials,
     processSteps: input.processSteps?.length ? input.processSteps : defaultWebsiteContent.processSteps,
     skills: input.skills?.length ? input.skills : defaultWebsiteContent.skills,
+    audienceItems: input.audienceItems?.length ? input.audienceItems : defaultWebsiteContent.audienceItems,
+    supportPoints: input.supportPoints?.length ? input.supportPoints : defaultWebsiteContent.supportPoints,
   };
 }
 

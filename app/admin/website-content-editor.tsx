@@ -2,8 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { defaultWebsiteContent, type WebsiteContent } from "../website-content-data";
+import { defaultWebsiteContent, type WebsiteAudience, type WebsiteContent, type WebsiteTestimonial } from "../website-content-data";
 import { readWebsiteContent, resetWebsiteContent, saveWebsiteContent } from "../website-content-store";
+import { persistAdminState } from "../persistence-client";
+
+type ContentTab = "brand" | "journey" | "sections" | "contact" | "legal";
+
+const tabs: { id: ContentTab; label: string }[] = [
+  { id: "brand", label: "Brand & Hero" },
+  { id: "journey", label: "Support Journey" },
+  { id: "sections", label: "Page Sections" },
+  { id: "contact", label: "Contact & Footer" },
+  { id: "legal", label: "Invoice & Legal" },
+];
 
 function lines(value: string[]) {
   return value.join("\n");
@@ -15,14 +26,26 @@ function fromLines(value: string) {
 
 export function WebsiteContentEditor() {
   const [content, setContent] = useState<WebsiteContent>(defaultWebsiteContent);
+  const [activeTab, setActiveTab] = useState<ContentTab>("brand");
+  const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
 
   useEffect(() => {
-    setContent(readWebsiteContent());
+    const refresh = () => setContent(readWebsiteContent());
+    const timer = window.setTimeout(refresh, 0);
+    window.addEventListener("website-content-updated", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("website-content-updated", refresh);
+    };
   }, []);
 
-  function update(field: keyof WebsiteContent, value: string | string[]) {
+  function update(field: keyof WebsiteContent, value: string | string[] | boolean) {
     setContent((current) => ({ ...current, [field]: value }));
+    setDirty(true);
+    setSaved("");
   }
 
   function updateStep(index: number, field: "title" | "text" | "number", value: string) {
@@ -30,81 +53,259 @@ export function WebsiteContentEditor() {
       ...current,
       processSteps: current.processSteps.map((step, stepIndex) => stepIndex === index ? { ...step, [field]: value } : step),
     }));
+    setDirty(true);
+    setSaved("");
   }
 
-  function save() {
-    saveWebsiteContent(content);
-    setSaved("Website content saved. Refresh the public website to see it live.");
+  function updateAudience(index: number, field: keyof WebsiteAudience, value: string) {
+    setContent((current) => ({
+      ...current,
+      audienceItems: current.audienceItems.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+    setDirty(true);
+    setSaved("");
   }
 
-  function reset() {
+  function updateHighlight(index: number, field: "title" | "text", value: string) {
+    setContent((current) => ({
+      ...current,
+      serviceHighlights: current.serviceHighlights.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+    setDirty(true);
+    setSaved("");
+  }
+
+  function updateTestimonial(index: number, field: keyof WebsiteTestimonial, value: string) {
+    setContent((current) => ({
+      ...current,
+      testimonials: current.testimonials.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+    setDirty(true);
+    setSaved("");
+  }
+
+  function addTestimonial() {
+    setContent((current) => ({
+      ...current,
+      testimonials: [...current.testimonials, { quote: "", name: "", context: "" }],
+    }));
+    setDirty(true);
+    setSaved("");
+  }
+
+  function removeTestimonial(index: number) {
+    setContent((current) => ({ ...current, testimonials: current.testimonials.filter((_, itemIndex) => itemIndex !== index) }));
+    setDirty(true);
+    setSaved("");
+  }
+
+  async function save() {
+    setIsSaving(true);
+    const publishedContent = {
+      ...content,
+      testimonials: content.testimonials.filter((testimonial) => testimonial.name.trim() && testimonial.quote.trim()),
+    };
+    saveWebsiteContent(publishedContent);
+    setContent(publishedContent);
+    setDirty(false);
+    const persisted = await persistAdminState("site-content", publishedContent);
+    setSaved(persisted ? "Website content published." : "Saved in this local preview. Apply the D1 migration before treating this as a live publish.");
+    setIsSaving(false);
+  }
+
+  async function reset() {
+    if (!window.confirm("Reset all website content to the original defaults? This replaces every unsaved and saved content change.")) return;
     resetWebsiteContent();
+    await persistAdminState("site-content", null);
     setContent(defaultWebsiteContent);
+    setDirty(false);
     setSaved("Website content reset to defaults.");
+    setActiveTab("brand");
+  }
+
+  async function uploadHeroImage(file?: File) {
+    if (!file) return;
+    setIsUploadingHero(true);
+    setSaved("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "hero");
+      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
+      const payload = await response.json() as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Hero image upload failed.");
+      update("heroImageUrl", payload.url);
+      setSaved("Hero image uploaded. Publish changes to show it on the public website.");
+    } catch (error) {
+      setSaved(error instanceof Error ? error.message : "Hero image upload failed.");
+    } finally {
+      setIsUploadingHero(false);
+    }
   }
 
   return (
     <section className="content-editor">
-      <div className="editor-actions">
-        <Link className="button button-ghost" href="/">Preview website</Link>
-        <button className="button button-ghost" onClick={reset} type="button">Reset defaults</button>
-        <button className="button" onClick={save} type="button">Save website content</button>
-      </div>
+      <header className="content-editor-toolbar">
+        <div>
+          <span>Homepage content</span>
+          <strong>{dirty ? "Unsaved changes" : "All changes saved"}</strong>
+        </div>
+        <div className="editor-actions">
+          <Link className="button button-ghost" href="/">Preview website</Link>
+          <button className="button button-ghost" onClick={() => { void reset(); }} type="button">Reset all</button>
+          <button className="button" disabled={isSaving} onClick={() => { void save(); }} type="button">{isSaving ? "Publishing..." : "Publish changes"}</button>
+        </div>
+      </header>
       {saved && <div className="assistant-saved">{saved}</div>}
 
-      <article className="content-editor-card">
-        <h2>Header and hero</h2>
-        <label><span>Brand title</span><input value={content.brandTitle} onChange={(event) => update("brandTitle", event.target.value)} /></label>
-        <label><span>Brand subtitle</span><input value={content.brandSubtitle} onChange={(event) => update("brandSubtitle", event.target.value)} /></label>
-        <label><span>Header button</span><input value={content.headerCta} onChange={(event) => update("headerCta", event.target.value)} /></label>
-        <label><span>Hero eyebrow</span><input value={content.heroEyebrow} onChange={(event) => update("heroEyebrow", event.target.value)} /></label>
-        <label><span>Hero title</span><input value={content.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
-        <label><span>Hero accent</span><input value={content.heroAccent} onChange={(event) => update("heroAccent", event.target.value)} /></label>
-        <label className="full"><span>Hero lead</span><textarea rows={4} value={content.heroLead} onChange={(event) => update("heroLead", event.target.value)} /></label>
-        <label><span>Primary CTA</span><input value={content.heroPrimaryCta} onChange={(event) => update("heroPrimaryCta", event.target.value)} /></label>
-        <label><span>Secondary CTA</span><input value={content.heroSecondaryCta} onChange={(event) => update("heroSecondaryCta", event.target.value)} /></label>
-        <label className="full"><span>Trust items, one per line</span><textarea rows={3} value={lines(content.trustItems)} onChange={(event) => update("trustItems", fromLines(event.target.value))} /></label>
-      </article>
-
-      <article className="content-editor-card">
-        <h2>Process panel</h2>
-        <label className="full"><span>Panel label</span><input value={content.processLabel} onChange={(event) => update("processLabel", event.target.value)} /></label>
-        {content.processSteps.map((step, index) => (
-          <div className="step-editor full" key={index}>
-            <label><span>Step number</span><input value={step.number} onChange={(event) => updateStep(index, "number", event.target.value)} /></label>
-            <label><span>Step title</span><input value={step.title} onChange={(event) => updateStep(index, "title", event.target.value)} /></label>
-            <label className="full"><span>Step text</span><input value={step.text} onChange={(event) => updateStep(index, "text", event.target.value)} /></label>
-          </div>
+      <div className="content-editor-tabs" role="tablist" aria-label="Website content areas">
+        {tabs.map((tab) => (
+          <button
+            aria-controls={`content-panel-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? "active" : ""}
+            id={`content-tab-${tab.id}`}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            type="button"
+          >
+            {tab.label}
+          </button>
         ))}
-        <label><span>Experience number</span><input value={content.experienceValue} onChange={(event) => update("experienceValue", event.target.value)} /></label>
-        <label><span>Experience label</span><input value={content.experienceLabel} onChange={(event) => update("experienceLabel", event.target.value)} /></label>
-      </article>
+      </div>
 
-      <article className="content-editor-card">
-        <h2>Sections</h2>
-        <label><span>Services eyebrow</span><input value={content.servicesEyebrow} onChange={(event) => update("servicesEyebrow", event.target.value)} /></label>
-        <label><span>Services title</span><input value={content.servicesTitle} onChange={(event) => update("servicesTitle", event.target.value)} /></label>
-        <label className="full"><span>Services text</span><textarea rows={3} value={content.servicesText} onChange={(event) => update("servicesText", event.target.value)} /></label>
-        <label><span>About eyebrow</span><input value={content.aboutEyebrow} onChange={(event) => update("aboutEyebrow", event.target.value)} /></label>
-        <label><span>About title</span><input value={content.aboutTitle} onChange={(event) => update("aboutTitle", event.target.value)} /></label>
-        <label className="full"><span>About text</span><textarea rows={4} value={content.aboutText} onChange={(event) => update("aboutText", event.target.value)} /></label>
-        <label className="full"><span>Skill list, one per line</span><textarea rows={5} value={lines(content.skills)} onChange={(event) => update("skills", fromLines(event.target.value))} /></label>
-        <label><span>Equipment eyebrow</span><input value={content.equipmentEyebrow} onChange={(event) => update("equipmentEyebrow", event.target.value)} /></label>
-        <label><span>Equipment title</span><input value={content.equipmentTitle} onChange={(event) => update("equipmentTitle", event.target.value)} /></label>
-        <label className="full"><span>Equipment text</span><textarea rows={3} value={content.equipmentText} onChange={(event) => update("equipmentText", event.target.value)} /></label>
-      </article>
+      <div aria-labelledby={`content-tab-${activeTab}`} className="content-editor-panel" id={`content-panel-${activeTab}`} role="tabpanel">
+        {activeTab === "brand" && (
+          <article className="content-editor-card">
+            <header><span>Public identity</span><h2>Brand and hero</h2></header>
+            <label><span>Brand title</span><input value={content.brandTitle} onChange={(event) => update("brandTitle", event.target.value)} /></label>
+            <label><span>Brand subtitle</span><input value={content.brandSubtitle} onChange={(event) => update("brandSubtitle", event.target.value)} /></label>
+            <label><span>Header button</span><input value={content.headerCta} onChange={(event) => update("headerCta", event.target.value)} /></label>
+            <label><span>Hero eyebrow</span><input value={content.heroEyebrow} onChange={(event) => update("heroEyebrow", event.target.value)} /></label>
+            <label><span>Hero title</span><input value={content.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
+            <label><span>Hero accent</span><input value={content.heroAccent} onChange={(event) => update("heroAccent", event.target.value)} /></label>
+            <label><span>Hero image URL</span><input value={content.heroImageUrl} onChange={(event) => update("heroImageUrl", event.target.value)} placeholder="/hero-it-support.webp" /></label>
+            <label className="full"><span>Upload hero image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingHero} onChange={(event) => { void uploadHeroImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <label className="full"><span>Hero lead</span><textarea rows={4} value={content.heroLead} onChange={(event) => update("heroLead", event.target.value)} /></label>
+            <label><span>Primary action</span><input value={content.heroPrimaryCta} onChange={(event) => update("heroPrimaryCta", event.target.value)} /></label>
+            <label><span>Secondary action</span><input value={content.heroSecondaryCta} onChange={(event) => update("heroSecondaryCta", event.target.value)} /></label>
+            <label className="full"><span>Trust items, one per line</span><textarea rows={4} value={lines(content.trustItems)} onChange={(event) => update("trustItems", fromLines(event.target.value))} /></label>
+          </article>
+        )}
 
-      <article className="content-editor-card">
-        <h2>Contact and footer</h2>
-        <label><span>Contact eyebrow</span><input value={content.contactEyebrow} onChange={(event) => update("contactEyebrow", event.target.value)} /></label>
-        <label><span>Contact title</span><input value={content.contactTitle} onChange={(event) => update("contactTitle", event.target.value)} /></label>
-        <label className="full"><span>Contact text</span><textarea rows={3} value={content.contactText} onChange={(event) => update("contactText", event.target.value)} /></label>
-        <label><span>Contact button</span><input value={content.contactButton} onChange={(event) => update("contactButton", event.target.value)} /></label>
-        <label><span>Support email</span><input value={content.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} /></label>
-        <label><span>WhatsApp number</span><input value={content.whatsappNumber} onChange={(event) => update("whatsappNumber", event.target.value)} /></label>
-        <label><span>Location text</span><input value={content.locationText} onChange={(event) => update("locationText", event.target.value)} /></label>
-        <label className="full"><span>Footer text</span><input value={content.footerText} onChange={(event) => update("footerText", event.target.value)} /></label>
-      </article>
+        {activeTab === "journey" && (
+          <article className="content-editor-card">
+            <header><span>Hero support panel</span><h2>Support journey</h2></header>
+            <label className="full"><span>Panel label</span><input value={content.processLabel} onChange={(event) => update("processLabel", event.target.value)} /></label>
+            {content.processSteps.map((step, index) => (
+              <div className="step-editor full" key={index}>
+                <label><span>Step number</span><input value={step.number} onChange={(event) => updateStep(index, "number", event.target.value)} /></label>
+                <label><span>Step title</span><input value={step.title} onChange={(event) => updateStep(index, "title", event.target.value)} /></label>
+                <label className="full"><span>Step text</span><input value={step.text} onChange={(event) => updateStep(index, "text", event.target.value)} /></label>
+              </div>
+            ))}
+            <label><span>Experience number</span><input value={content.experienceValue} onChange={(event) => update("experienceValue", event.target.value)} /></label>
+            <label><span>Experience label</span><input value={content.experienceLabel} onChange={(event) => update("experienceLabel", event.target.value)} /></label>
+            <div className="content-field-group full"><strong>Request panel</strong></div>
+            <label><span>Panel eyebrow</span><input value={content.supportEyebrow} onChange={(event) => update("supportEyebrow", event.target.value)} /></label>
+            <label><span>Panel title</span><input value={content.supportTitle} onChange={(event) => update("supportTitle", event.target.value)} /></label>
+            <label className="full"><span>Panel text</span><textarea rows={3} value={content.supportText} onChange={(event) => update("supportText", event.target.value)} /></label>
+            <label className="full"><span>Panel points, one per line</span><textarea rows={3} value={lines(content.supportPoints)} onChange={(event) => update("supportPoints", fromLines(event.target.value))} /></label>
+          </article>
+        )}
+
+        {activeTab === "sections" && (
+          <article className="content-editor-card">
+            <header><span>Homepage bands</span><h2>Page sections</h2><Link href="/admin/site-services">Edit service cards</Link></header>
+            <div className="content-field-group full"><strong>Services</strong></div>
+            <label><span>Services eyebrow</span><input value={content.servicesEyebrow} onChange={(event) => update("servicesEyebrow", event.target.value)} /></label>
+            <label><span>Services title</span><input value={content.servicesTitle} onChange={(event) => update("servicesTitle", event.target.value)} /></label>
+            <label className="full"><span>Services text</span><textarea rows={3} value={content.servicesText} onChange={(event) => update("servicesText", event.target.value)} /></label>
+            <div className="content-field-group full"><strong>Service highlights</strong></div>
+            {content.serviceHighlights.map((highlight, index) => (
+              <div className="step-editor full" key={index}>
+                <label><span>Highlight title</span><input value={highlight.title} onChange={(event) => updateHighlight(index, "title", event.target.value)} /></label>
+                <label className="full"><span>Highlight text</span><input value={highlight.text} onChange={(event) => updateHighlight(index, "text", event.target.value)} /></label>
+              </div>
+            ))}
+            <div className="content-field-group full"><strong>Approved customer feedback</strong><button className="table-link table-button" onClick={addTestimonial} type="button">Add feedback</button></div>
+            <label><span>Feedback eyebrow</span><input value={content.testimonialEyebrow} onChange={(event) => update("testimonialEyebrow", event.target.value)} /></label>
+            <label><span>Feedback heading</span><input value={content.testimonialTitle} onChange={(event) => update("testimonialTitle", event.target.value)} /></label>
+            <label className="full"><span>Feedback introduction</span><textarea rows={3} value={content.testimonialText} onChange={(event) => update("testimonialText", event.target.value)} /></label>
+            {content.testimonials.map((testimonial, index) => (
+              <div className="step-editor full" key={index}>
+                <label><span>Customer name</span><input value={testimonial.name} onChange={(event) => updateTestimonial(index, "name", event.target.value)} /></label>
+                <label><span>Customer context</span><input value={testimonial.context} onChange={(event) => updateTestimonial(index, "context", event.target.value)} placeholder="e.g. Business IT support" /></label>
+                <label className="full"><span>Feedback</span><textarea rows={3} value={testimonial.quote} onChange={(event) => updateTestimonial(index, "quote", event.target.value)} /></label>
+                <button className="table-link table-button" onClick={() => removeTestimonial(index)} type="button">Remove feedback</button>
+              </div>
+            ))}
+            <div className="content-field-group full"><strong>Who we help</strong></div>
+            <label><span>Audience eyebrow</span><input value={content.audienceEyebrow} onChange={(event) => update("audienceEyebrow", event.target.value)} /></label>
+            <label><span>Audience title</span><input value={content.audienceTitle} onChange={(event) => update("audienceTitle", event.target.value)} /></label>
+            <label className="full"><span>Audience text</span><textarea rows={3} value={content.audienceText} onChange={(event) => update("audienceText", event.target.value)} /></label>
+            {content.audienceItems.map((audience, index) => (
+              <div className="step-editor full audience-editor" key={index}>
+                <label><span>Audience</span><input value={audience.title} onChange={(event) => updateAudience(index, "title", event.target.value)} /></label>
+                <label className="full"><span>Focus</span><textarea rows={3} value={audience.text} onChange={(event) => updateAudience(index, "text", event.target.value)} /></label>
+              </div>
+            ))}
+            <div className="content-field-group full"><strong>Why us</strong></div>
+            <label><span>About eyebrow</span><input value={content.aboutEyebrow} onChange={(event) => update("aboutEyebrow", event.target.value)} /></label>
+            <label><span>About title</span><input value={content.aboutTitle} onChange={(event) => update("aboutTitle", event.target.value)} /></label>
+            <label className="full"><span>About text</span><textarea rows={4} value={content.aboutText} onChange={(event) => update("aboutText", event.target.value)} /></label>
+            <label><span>Audience proof title</span><input value={content.aboutAudienceTitle} onChange={(event) => update("aboutAudienceTitle", event.target.value)} /></label>
+            <label><span>Audience proof text</span><input value={content.aboutAudienceText} onChange={(event) => update("aboutAudienceText", event.target.value)} /></label>
+            <label className="full"><span>Skill list, one per line</span><textarea rows={5} value={lines(content.skills)} onChange={(event) => update("skills", fromLines(event.target.value))} /></label>
+            <div className="content-field-group full"><strong>Equipment</strong><Link href="/admin/equipment">Manage equipment</Link></div>
+            <label><span>Equipment eyebrow</span><input value={content.equipmentEyebrow} onChange={(event) => update("equipmentEyebrow", event.target.value)} /></label>
+            <label><span>Equipment title</span><input value={content.equipmentTitle} onChange={(event) => update("equipmentTitle", event.target.value)} /></label>
+            <label className="full"><span>Equipment text</span><textarea rows={3} value={content.equipmentText} onChange={(event) => update("equipmentText", event.target.value)} /></label>
+            <div className="content-field-group full"><strong>IT planning callout</strong></div>
+            <label><span>Callout eyebrow</span><input value={content.consultingEyebrow} onChange={(event) => update("consultingEyebrow", event.target.value)} /></label>
+            <label><span>Callout title</span><input value={content.consultingTitle} onChange={(event) => update("consultingTitle", event.target.value)} /></label>
+            <label className="full"><span>Callout text</span><textarea rows={4} value={content.consultingText} onChange={(event) => update("consultingText", event.target.value)} /></label>
+            <label><span>Callout button</span><input value={content.consultingCta} onChange={(event) => update("consultingCta", event.target.value)} /></label>
+          </article>
+        )}
+
+        {activeTab === "contact" && (
+          <article className="content-editor-card">
+            <header><span>Customer contact</span><h2>Contact and footer</h2></header>
+            <label><span>Contact eyebrow</span><input value={content.contactEyebrow} onChange={(event) => update("contactEyebrow", event.target.value)} /></label>
+            <label><span>Contact title</span><input value={content.contactTitle} onChange={(event) => update("contactTitle", event.target.value)} /></label>
+            <label className="full"><span>Contact text</span><textarea rows={3} value={content.contactText} onChange={(event) => update("contactText", event.target.value)} /></label>
+            <label><span>Contact button</span><input value={content.contactButton} onChange={(event) => update("contactButton", event.target.value)} /></label>
+            <label><span>Support email</span><input type="email" value={content.contactEmail} onChange={(event) => update("contactEmail", event.target.value)} /></label>
+            <label><span>WhatsApp number</span><input inputMode="tel" value={content.whatsappNumber} onChange={(event) => update("whatsappNumber", event.target.value)} /></label>
+            <label><span>Location text</span><input value={content.locationText} onChange={(event) => update("locationText", event.target.value)} /></label>
+            <label><span>Public availability</span><input value={content.businessHours} onChange={(event) => update("businessHours", event.target.value)} /></label>
+            <label><span>Response expectation</span><input value={content.responseExpectation} onChange={(event) => update("responseExpectation", event.target.value)} /></label>
+            <label className="full"><span>Footer text</span><input value={content.footerText} onChange={(event) => update("footerText", event.target.value)} /></label>
+          </article>
+        )}
+
+        {activeTab === "legal" && (
+          <article className="content-editor-card">
+            <header><span>Invoices and receipts</span><h2>Invoice and legal details</h2></header>
+            <label><span>Legal business name</span><input value={content.businessLegalName} onChange={(event) => update("businessLegalName", event.target.value)} /></label>
+            <label><span>ABN</span><input value={content.businessAbn} onChange={(event) => update("businessAbn", event.target.value)} placeholder="e.g. 12 345 678 901" /></label>
+            <label className="full"><span>Business address</span><textarea rows={3} value={content.businessAddress} onChange={(event) => update("businessAddress", event.target.value)} /></label>
+            <label><span>Business phone</span><input inputMode="tel" value={content.businessPhone} onChange={(event) => update("businessPhone", event.target.value)} /></label>
+            <label><span>Invoice email</span><input type="email" value={content.invoiceEmail} onChange={(event) => update("invoiceEmail", event.target.value)} /></label>
+            <label>
+              <span>Invoice type</span>
+              <select value={content.invoiceIsTaxInvoice ? "tax" : "regular"} onChange={(event) => update("invoiceIsTaxInvoice", event.target.value === "tax")}>
+                <option value="tax">Tax invoice, GST shown</option>
+                <option value="regular">Regular invoice</option>
+              </select>
+            </label>
+            <label className="full"><span>Payment instructions</span><textarea rows={3} value={content.invoicePaymentInstructions} onChange={(event) => update("invoicePaymentInstructions", event.target.value)} /></label>
+            <label className="full"><span>Invoice footer note</span><input value={content.invoiceFooterNote} onChange={(event) => update("invoiceFooterNote", event.target.value)} /></label>
+          </article>
+        )}
+      </div>
     </section>
   );
 }

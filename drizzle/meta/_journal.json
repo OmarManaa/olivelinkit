@@ -8,6 +8,13 @@
       "when": 1785979556151,
       "tag": "0000_steady_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786161488392,
+      "tag": "0001_fuzzy_songbird",
+      "breakpoints": true
     }
   ]
 }

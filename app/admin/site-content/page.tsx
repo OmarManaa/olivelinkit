@@ -8,7 +8,7 @@ export default function SiteContentPage() {
       <header className="admin-topbar">
         <div>
           <h1>Website Content</h1>
-          <small>Edit public homepage copy, CTAs, trust messages, and section headings</small>
+          <small>Manage public copy, calls to action, contact details, and invoice settings</small>
         </div>
       </header>
       <div className="admin-content"><WebsiteContentEditor /></div>

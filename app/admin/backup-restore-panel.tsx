@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 const backupKeys = [
   { key: "it-services-support-requests", label: "Support requests", note: "Website questions and reply workflow states" },
+  { key: "it-services-job-records", label: "Jobs", note: "Converted, resolved, completed, and archived job records" },
+  { key: "it-services-invoices", label: "Invoices", note: "Draft, paid, and no-charge invoice records" },
+  { key: "it-services-customers", label: "Customers", note: "Confirmed customer records created from resolved work" },
+  { key: "it-services-followups", label: "Follow-ups", note: "Customer reminders, due dates, channels, outcomes, and snoozed tasks" },
   { key: "it-services-quote-drafts", label: "Quotes", note: "Draft, sent, and locally edited quote records" },
   { key: "it-services-prospects", label: "Prospects", note: "Visitors created from requests or quote workflows" },
   { key: "it-services-website-services", label: "Website service cards", note: "Public service card titles, icons, and request mapping" },
@@ -11,7 +15,7 @@ const backupKeys = [
   { key: "it-services-inventory-items", label: "Inventory and equipment", note: "Stock, public visibility, equipment sale cards, and pricing" },
 ];
 
-const refreshEvents = ["support-requests-updated", "quote-drafts-updated", "prospects-updated", "website-services-updated", "website-content-updated", "inventory-items-updated"];
+const refreshEvents = ["support-requests-updated", "jobs-updated", "invoices-updated", "customers-updated", "followups-updated", "quote-drafts-updated", "prospects-updated", "website-services-updated", "website-content-updated", "inventory-items-updated"];
 
 type BackupFile = {
   app: string;
@@ -64,13 +68,8 @@ export function BackupRestorePanel() {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [message, setMessage] = useState("Ready to edit.");
-  const [previewVersion, setPreviewVersion] = useState(0);
-
-  const currentCounts = useMemo(() => {
-    previewVersion;
-    if (typeof window === "undefined") return {};
-    return Object.fromEntries(backupKeys.map((item) => [item.key, itemCount(window.localStorage.getItem(item.key))]));
-  }, [previewVersion]);
+  const [, setPreviewVersion] = useState(0);
+  const currentCounts = typeof window === "undefined" ? {} : Object.fromEntries(backupKeys.map((item) => [item.key, itemCount(window.localStorage.getItem(item.key))]));
 
   const selectedCount = selectedKeys.reduce((total, key) => total + (validated?.counts[key] ?? 0), 0);
 
@@ -142,16 +141,16 @@ export function BackupRestorePanel() {
     <section className="backup-console">
       <div className="backup-status">{message}</div>
       <div className="backup-frame">
-        <h2>Complete Backup & Restore</h2>
+        <h2>Browser Recovery Backup</h2>
         <div className="backup-grid">
           <article className="backup-tile backup-tile-accent">
-            <h3>Export all business data</h3>
-            <p>Download a complete JSON snapshot of editable local admin data, including website content, quotes, requests, prospects, and public equipment records.</p>
-            <button className="button" onClick={exportBackup} type="button">Export complete backup</button>
+            <h3>Export this browser&apos;s working copy</h3>
+            <p>Download a JSON recovery copy of the admin records currently available in this browser, including requests, jobs, invoices, customers, quotes, prospects, and public equipment records.</p>
+            <button className="button" onClick={exportBackup} type="button">Export browser backup</button>
           </article>
           <article className="backup-tile backup-tile-accent">
-            <h3>Staged restore wizard</h3>
-            <p>Choose a backup, validate it, select the areas to restore, then restore only those local records.</p>
+            <h3>Staged local restore</h3>
+            <p>Choose a browser backup, validate it, select the areas to restore, then restore only those local records.</p>
             <input accept="application/json" onChange={(event) => chooseFile(event.target.files?.[0])} type="file" />
             <button className="button" disabled={!backupText} onClick={validateBackup} type="button">1. Validate backup</button>
           </article>
@@ -193,7 +192,7 @@ export function BackupRestorePanel() {
           </article>
           <article className="backup-note">
             <p><strong>Protected security data:</strong> admin identity, sessions, and authentication are not exported or restored.</p>
-            <p><strong>Local mode:</strong> this backup protects browser localStorage data. Once the site uses a real database, this wizard should export database tables instead.</p>
+            <p><strong>Live data:</strong> D1 is the source of truth for deployed records. This browser backup is a recovery aid, not a replacement for a D1 backup or export.</p>
           </article>
         </div>
       </div>

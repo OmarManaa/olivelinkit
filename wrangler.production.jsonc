@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "olivelinkit",
+  "account_id": "a7f2eb2731d9c9db4a0356ee297d3aa8",
+  "main": "dist/server/index.js",
+  "compatibility_date": "2025-05-01",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public",
+    "enable_weak_ref"
+  ],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "olivelinkit.au",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.olivelinkit.au",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "olivelinkit-production",
+      "database_id": "74cacedb-3520-490d-a9ac-abc17d804eed"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "olivelinkit-media"
+    }
+  ]
+}

@@ -10,10 +10,15 @@ const defaultEquipmentImages: Record<string, string> = {
   "DESK-HP-800G5": "/equipment/mini-desktop.webp",
 };
 
+function uniqueUrls(urls: unknown[]) {
+  return Array.from(new Set(urls.filter((url): url is string => typeof url === "string").map((url) => url.trim()).filter(Boolean)));
+}
+
 function withDefaults(item: InventoryItem): InventoryItem {
   return {
     ...item,
     imageUrl: item.imageUrl || defaultEquipmentImages[item.sku] || "",
+    galleryUrls: uniqueUrls(item.galleryUrls ?? []),
   };
 }
 
@@ -33,6 +38,10 @@ export function readInventoryItems(): InventoryItem[] {
   } catch {
     return inventory;
   }
+}
+
+export function hasStoredInventoryItems() {
+  return typeof window !== "undefined" && window.localStorage.getItem(STORAGE_KEY) !== null;
 }
 
 export function saveInventoryItems(items: InventoryItem[]) {

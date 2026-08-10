@@ -16,6 +16,10 @@ export function readWebsiteServices(): WebsiteService[] {
   }
 }
 
+export function hasStoredWebsiteServices() {
+  return typeof window !== "undefined" && window.localStorage.getItem(STORAGE_KEY) !== null;
+}
+
 export function saveWebsiteServices(services: WebsiteService[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(services));
   window.dispatchEvent(new Event("website-services-updated"));

@@ -7,7 +7,29 @@ export const metrics = [
   ["Revenue this month", "$2,450", "+12%"],
 ];
 
-export const jobs = [
+export type Job = {
+  reference: string;
+  customer: string;
+  email?: string;
+  phone?: string;
+  customerId?: string;
+  device: string;
+  issue: string;
+  status: string;
+  tone: "blue" | "amber" | "green" | "gray";
+  priority: string;
+  serviceType: string;
+  owner: string;
+  dueAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  archivedAt?: string;
+  resolutionSummary?: string;
+  billingStatus?: "Draft invoice" | "Invoice sent" | "Paid" | "No charge" | "Already paid";
+  invoiceReference?: string;
+};
+
+export const jobs: Job[] = [
   { reference: "IT-0041", customer: "Sarah Mitchell", device: "Dell Latitude 5420", issue: "Windows not booting", status: "In progress", tone: "blue", priority: "High", serviceType: "Workshop repair", owner: "Omar", dueAt: "Today", updatedAt: "8 minutes ago" },
   { reference: "IT-0040", customer: "Bright Dental", device: "Office network", issue: "Intermittent Wi-Fi", status: "Waiting parts", tone: "amber", priority: "High", serviceType: "Business onsite", owner: "Omar", dueAt: "Tomorrow", updatedAt: "42 minutes ago" },
   { reference: "IT-0039", customer: "James Wu", device: "Custom PC", issue: "SSD upgrade & migration", status: "Ready", tone: "green", priority: "Normal", serviceType: "Workshop repair", owner: "Omar", dueAt: "Today", updatedAt: "1 hour ago" },
@@ -15,8 +37,6 @@ export const jobs = [
   { reference: "IT-0037", customer: "Anne Parker", device: "HP Pavilion", issue: "Slow performance", status: "Completed", tone: "green", priority: "Low", serviceType: "Workshop repair", owner: "Omar", dueAt: "Done", updatedAt: "2 hours ago" },
   { reference: "IT-0036", customer: "Bright Dental", device: "Reception PC", issue: "Outlook profile errors", status: "New", tone: "gray", priority: "High", serviceType: "Remote support", owner: "Unassigned", dueAt: "Today", updatedAt: "Today" },
 ];
-
-export type Job = (typeof jobs)[number];
 
 export type Customer = {
   id: string;
@@ -95,10 +115,31 @@ export const quotes = [
 
 export type Quote = (typeof quotes)[number];
 
+export type Invoice = {
+  reference: string;
+  customer: string;
+  relatedJob: string;
+  status: "Draft" | "Sent" | "Paid" | "No charge";
+  tone: "blue" | "amber" | "green" | "gray";
+  subtotal: number;
+  gst: number;
+  total: number;
+  issuedAt: string;
+  dueAt: string;
+  updatedAt: string;
+  items: { description: string; quantity: number; unitPrice: number }[];
+  notes: string;
+};
+
+export const invoices: Invoice[] = [];
+
 export type InventoryItem = {
   sku: string;
   name: string;
   category: string;
+  description?: string;
+  specs?: string;
+  warranty?: string;
   quantity: number;
   reorderLevel: number;
   salePrice: number;
@@ -106,6 +147,7 @@ export type InventoryItem = {
   type: "Parts" | "Equipment";
   publicVisible: boolean;
   imageUrl?: string;
+  galleryUrls?: string[];
   updatedAt: string;
 };
 
@@ -129,15 +171,30 @@ export const activities = [
   ["Job IT-0037 marked completed", "2 hours ago - Omar"],
 ];
 
-export const followups = [
+export type Followup = {
+  id: string;
+  customer: string;
+  reason: string;
+  related: string;
+  dueAt: string;
+  dueDateTime?: string;
+  owner: string;
+  status: "Planned" | "Scheduled" | "Due" | "Waiting" | "Overdue" | "Completed";
+  tone: "blue" | "amber" | "green" | "gray";
+  channel: "WhatsApp" | "Email" | "Phone";
+  priority?: "Low" | "Normal" | "High";
+  outcome?: string;
+  lastAction?: string;
+  completedAt?: string;
+};
+
+export const followups: Followup[] = [
   { id: "FU-1004", customer: "Tameem Manaa", reason: "Confirm laptop model and backup requirement", related: "REQ-055547", dueAt: "Today", owner: "Omar", status: "Due", tone: "amber", channel: "WhatsApp" },
   { id: "FU-1003", customer: "Bright Dental", reason: "Confirm network quote approval", related: "Q-0026", dueAt: "Tomorrow", owner: "Omar", status: "Scheduled", tone: "blue", channel: "Email" },
   { id: "FU-1002", customer: "James Wu", reason: "Pickup reminder for completed SSD migration", related: "IT-0039", dueAt: "Today", owner: "Omar", status: "Due", tone: "amber", channel: "WhatsApp" },
   { id: "FU-1001", customer: "Anne Parker", reason: "Post-repair check-in", related: "IT-0037", dueAt: "Next week", owner: "Omar", status: "Planned", tone: "gray", channel: "Email" },
   { id: "FU-1000", customer: "Northside Studio", reason: "Mailbox migration feedback", related: "IT-0038", dueAt: "Done", owner: "Omar", status: "Completed", tone: "green", channel: "Email" },
 ];
-
-export type Followup = (typeof followups)[number];
 
 export const adminSections = {
   jobs: {
@@ -163,6 +220,12 @@ export const adminSections = {
     subtitle: "Draft, send, approve, and convert quoted work",
     action: "+ Quote",
     actionHref: "/admin/quotes/new",
+  },
+  invoices: {
+    title: "Invoices",
+    subtitle: "Billable work, paid jobs, no-charge records, and customer receipts",
+    action: "+ Invoice",
+    actionHref: "/admin/invoices/new",
   },
   inventory: {
     title: "Inventory",

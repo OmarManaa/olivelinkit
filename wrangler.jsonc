@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "olivelinkit",
+  "account_id": "a7f2eb2731d9c9db4a0356ee297d3aa8",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-05-01",
+  "compatibility_flags": ["nodejs_compat", "enable_weak_ref"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "olivelinkit-production",
+      "database_id": "74cacedb-3520-490d-a9ac-abc17d804eed",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "olivelinkit-media"
+    }
+  ]
+}

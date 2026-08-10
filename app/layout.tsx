@@ -1,26 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: "Home & Small Business IT Services | Melbourne",
-  description: "Professional computer repairs, networking, business IT, security and remote support in Melbourne.",
-  other: {
-    "codex-preview": "development",
+  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+  title: {
+    default: "OliveLink IT | Melbourne IT Support",
+    template: "%s | OliveLink IT",
+  },
+  description: "Practical computer repairs, networking, business IT, security, remote support and refurbished equipment in Melbourne.",
+  openGraph: {
+    title: "OliveLink IT | Melbourne IT Support",
+    description: "Reliable IT support and practical technology advice for individuals, small businesses and growing teams.",
+    type: "website",
+    locale: "en_AU",
+    ...(siteUrl ? { images: [{ url: "/hero-it-support.png", width: 1600, height: 900, alt: "Technician configuring a business network" }] } : {}),
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "OliveLink IT | Melbourne IT Support",
+    description: "Reliable IT support and practical technology advice for individuals, small businesses and growing teams.",
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
   },
 };
 
@@ -30,12 +34,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+    <html lang="en-AU">
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

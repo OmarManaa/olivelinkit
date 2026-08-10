@@ -3,16 +3,39 @@
 import { useEffect, useState } from "react";
 import { ServiceIcon } from "./service-icon";
 import { defaultWebsiteServices, type WebsiteService } from "./website-services-data";
-import { readWebsiteServices } from "./website-services-store";
+import { hasStoredWebsiteServices, readWebsiteServices } from "./website-services-store";
 
-export function ServiceCards() {
-  const [services, setServices] = useState<WebsiteService[]>(defaultWebsiteServices);
+type ServiceCardsProps = {
+  initialServices?: WebsiteService[];
+};
+
+export function ServiceCards({ initialServices = defaultWebsiteServices }: ServiceCardsProps) {
+  const [services, setServices] = useState<WebsiteService[]>(initialServices);
 
   useEffect(() => {
-    const refresh = () => setServices(readWebsiteServices());
-    refresh();
+    let active = true;
+    async function refresh() {
+      if (hasStoredWebsiteServices()) {
+        if (active) setServices(readWebsiteServices());
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/site-data", { cache: "no-store" });
+        if (!response.ok) throw new Error("Site data unavailable.");
+        const payload = await response.json() as { services?: WebsiteService[] };
+        if (active && Array.isArray(payload.services)) setServices(payload.services);
+      } catch {
+        if (active) setServices(readWebsiteServices());
+      }
+    }
+
+    void refresh();
     window.addEventListener("website-services-updated", refresh);
-    return () => window.removeEventListener("website-services-updated", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("website-services-updated", refresh);
+    };
   }, []);
 
   return (

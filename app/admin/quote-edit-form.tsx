@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Customer, Job, Quote } from "./admin-data";
+import { readCustomerAndProspectRecords } from "./customers-store";
 import { saveQuoteDraft } from "./quotes-store";
 
 type QuoteEditFormProps = {
@@ -18,6 +19,13 @@ function toDateInput(value: string) {
   return Number.isNaN(parsed) ? "" : new Date(parsed).toISOString().slice(0, 10);
 }
 
+function toneForStatus(status: Quote["status"]): Quote["tone"] {
+  if (status === "Accepted") return "green";
+  if (status === "Sent") return "amber";
+  if (status === "Rejected" || status === "Expired") return "gray";
+  return "gray";
+}
+
 export function QuoteEditForm({ quote, customers, jobs }: QuoteEditFormProps) {
   const router = useRouter();
   const firstItem = quote.items[0] ?? { description: quote.title, quantity: 1, unitPrice: 0 };
@@ -28,6 +36,20 @@ export function QuoteEditForm({ quote, customers, jobs }: QuoteEditFormProps) {
   const [unitPrice, setUnitPrice] = useState(String(firstItem.unitPrice));
   const [expiresAt, setExpiresAt] = useState(toDateInput(quote.expiresAt));
   const [notes, setNotes] = useState("Customer-facing quote notes and internal preparation details.");
+  const [status, setStatus] = useState<Quote["status"]>(quote.status);
+  const [customerRecords, setCustomerRecords] = useState<Customer[]>(customers);
+
+  useEffect(() => {
+    const refresh = () => setCustomerRecords(readCustomerAndProspectRecords(customers));
+    const timer = window.setTimeout(refresh, 0);
+    window.addEventListener("customers-updated", refresh);
+    window.addEventListener("prospects-updated", refresh);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("customers-updated", refresh);
+      window.removeEventListener("prospects-updated", refresh);
+    };
+  }, [customers]);
 
   const totals = useMemo(() => {
     const subtotal = (Number(quantity) || 0) * (Number(unitPrice) || 0);
@@ -45,6 +67,8 @@ export function QuoteEditForm({ quote, customers, jobs }: QuoteEditFormProps) {
       quantity: Number(quantity) || 1,
       unitPrice: Number(unitPrice) || 0,
       notes,
+      status,
+      tone: toneForStatus(status),
     });
     router.push("/admin/quotes");
   }
@@ -57,7 +81,7 @@ export function QuoteEditForm({ quote, customers, jobs }: QuoteEditFormProps) {
       </label>
       <label>
         <span>Status</span>
-        <select defaultValue={quote.status}>
+        <select onChange={(event) => setStatus(event.target.value as Quote["status"])} value={status}>
           <option>Draft</option>
           <option>Sent</option>
           <option>Accepted</option>
@@ -66,9 +90,10 @@ export function QuoteEditForm({ quote, customers, jobs }: QuoteEditFormProps) {
         </select>
       </label>
       <label>
-        <span>Customer</span>
+        <span>Customer or prospect</span>
         <select onChange={(event) => setCustomer(event.target.value)} value={customer}>
-          {customers.map((entry) => <option key={entry.id} value={entry.name}>{entry.name} - {entry.type}</option>)}
+          {!customerRecords.some((entry) => entry.name === customer) && <option value={customer}>{customer}</option>}
+          {customerRecords.map((entry) => <option key={entry.id} value={entry.name}>{entry.name} - {entry.type}</option>)}
         </select>
       </label>
       <label>

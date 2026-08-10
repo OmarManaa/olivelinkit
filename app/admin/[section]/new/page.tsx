@@ -13,9 +13,10 @@ const fieldSets: Record<Exclude<AdminSection, "reports" | "requests">, string[]>
   jobs: ["Customer", "Device", "Issue", "Priority"],
   customers: ["Name", "Type", "Email", "Phone"],
   quotes: ["Customer", "Related job", "Description", "Expiry date"],
+  invoices: ["Customer", "Related job", "Description", "Quantity", "Unit price"],
   inventory: ["SKU", "Item name", "Quantity", "Sale price"],
   equipment: ["Asset tag", "Model", "Condition", "Sale price"],
-  followups: ["Customer", "Related record", "Due date", "Owner"],
+  followups: ["Customer", "Reason", "Related record", "Due date", "Channel", "Owner", "Status"],
 };
 
 function isCreatableSection(value: string): value is Exclude<AdminSection, "reports" | "requests"> {

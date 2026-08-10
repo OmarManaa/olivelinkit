@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Customer } from "./admin-data";
+import { dedupeCustomerRecords, readSavedCustomers } from "./customers-store";
 import { readProspects } from "./prospects-store";
 
 type CustomersTableProps = {
@@ -14,19 +15,25 @@ export function CustomersTable({ customers }: CustomersTableProps) {
   const [type, setType] = useState("all");
   const [priority, setPriority] = useState("all");
   const [prospects, setProspects] = useState<Customer[]>([]);
+  const [savedCustomers, setSavedCustomers] = useState<Customer[]>([]);
 
   useEffect(() => {
-    const refresh = () => setProspects(readProspects());
+    const refresh = () => {
+      setProspects(readProspects());
+      setSavedCustomers(readSavedCustomers());
+    };
     refresh();
+    window.addEventListener("customers-updated", refresh);
     window.addEventListener("prospects-updated", refresh);
     window.addEventListener("quote-drafts-updated", refresh);
     return () => {
+      window.removeEventListener("customers-updated", refresh);
       window.removeEventListener("prospects-updated", refresh);
       window.removeEventListener("quote-drafts-updated", refresh);
     };
   }, []);
 
-  const allCustomers = useMemo(() => [...prospects, ...customers], [customers, prospects]);
+  const allCustomers = useMemo(() => dedupeCustomerRecords([...savedCustomers, ...prospects, ...customers]), [customers, prospects, savedCustomers]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -37,6 +44,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
       return matchesQuery && matchesType && matchesPriority;
     });
   }, [allCustomers, priority, query, type]);
+  const prospectCount = allCustomers.filter((customer) => customer.type === "Prospect").length;
 
   return (
     <section className="work-panel">
@@ -66,7 +74,7 @@ export function CustomersTable({ customers }: CustomersTableProps) {
       </div>
       <div className="table-summary">
         <strong>{filtered.length}</strong> shown from {allCustomers.length} records
-        <span>{prospects.length} prospects</span>
+        <span>{prospectCount} prospects</span>
       </div>
       <div className="data-table-wrap">
         <table className="data-table">

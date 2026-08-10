@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { Customer, Quote } from "./admin-data";
+import { readCustomerAndProspectRecords } from "./customers-store";
 import { markQuoteSent, readQuoteDrafts } from "./quotes-store";
 
 type QuoteSendPanelProps = {
@@ -27,23 +28,33 @@ export function QuoteSendPanel({ quotes, customers }: QuoteSendPanelProps) {
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference") ?? "";
   const [drafts, setDrafts] = useState<Quote[]>([]);
+  const [customerRecords, setCustomerRecords] = useState<Customer[]>(customers);
   const [copied, setCopied] = useState("");
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    const refresh = () => setDrafts(readQuoteDrafts());
+    const refresh = () => {
+      setDrafts(readQuoteDrafts());
+      setCustomerRecords(readCustomerAndProspectRecords(customers));
+    };
     refresh();
     window.addEventListener("quote-drafts-updated", refresh);
-    return () => window.removeEventListener("quote-drafts-updated", refresh);
-  }, []);
+    window.addEventListener("customers-updated", refresh);
+    window.addEventListener("prospects-updated", refresh);
+    return () => {
+      window.removeEventListener("quote-drafts-updated", refresh);
+      window.removeEventListener("customers-updated", refresh);
+      window.removeEventListener("prospects-updated", refresh);
+    };
+  }, [customers]);
 
   const quote = useMemo(() => {
     return drafts.find((item) => item.reference === reference) || quotes.find((item) => item.reference === reference);
   }, [drafts, quotes, reference]);
 
   const customer = useMemo(() => {
-    return quote ? customers.find((item) => item.name === quote.customer) : undefined;
-  }, [customers, quote]);
+    return quote ? customerRecords.find((item) => item.name.toLowerCase() === quote.customer.toLowerCase()) : undefined;
+  }, [customerRecords, quote]);
 
   if (!quote) {
     return (
@@ -75,7 +86,7 @@ export function QuoteSendPanel({ quotes, customers }: QuoteSendPanelProps) {
     "",
     "Regards,",
     "Omar",
-    "IT Services",
+    "OliveLink IT",
   ].join("\n");
   const whatsappBody = `Hi ${quote.customer}, I have prepared quote ${quote.reference} for ${quote.title}. Total is ${formatMoney(quote.total)} including GST, expiring ${quote.expiresAt}. I have sent the details by email. Please reply if you approve or have any questions. Regards, Omar`;
   const emailHref = `mailto:${email}?${new URLSearchParams({ subject, body: emailBody }).toString()}`;
