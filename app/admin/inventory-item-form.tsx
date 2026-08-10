@@ -212,29 +212,40 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
         <label className="full"><span>Public description</span><textarea rows={3} value={item.description ?? ""} onChange={(event) => update("description", event.target.value)} placeholder="What is included, who it suits, and key condition notes" /></label>
         <label><span>Key specifications</span><input value={item.specs ?? ""} onChange={(event) => update("specs", event.target.value)} placeholder="e.g. i5, 16GB RAM, 512GB SSD" /></label>
         <label><span>Warranty</span><input value={item.warranty ?? ""} onChange={(event) => update("warranty", event.target.value)} placeholder="e.g. 90-day warranty" /></label>
-      <label className="full">
-        <span>Public image URL</span>
-        <input value={uploadedImage ? "" : item.imageUrl ?? ""} onChange={(event) => { update("imageUrl", event.target.value); setImageMessage(""); }} placeholder={uploadedImage ? "Uploaded image saved with this item" : "/equipment/latitude-laptop.webp"} />
-      </label>
-      <div className="image-upload-panel full">
-        <label>
-          <span>Upload product image</span>
-          <input accept="image/*" onChange={(event) => { uploadImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" />
-        </label>
-        <label>
-          <span>Upload extra photos</span>
-          <input accept="image/*" multiple onChange={(event) => { void uploadGalleryImages(event.target.files); event.currentTarget.value = ""; }} type="file" />
-        </label>
-        <div>
-          <strong>{uploadedImage ? "Uploaded image active" : "Use either upload or URL"}</strong>
-          <small>Upload a main product photo, add extra gallery photos, or paste public image URLs below. Uploaded images are compressed and stored in the business image library.</small>
-          {item.imageUrl && <button className="table-link table-button" onClick={removeImage} type="button">Remove image</button>}
-        </div>
+      <div className="product-media-panel full">
+        <section className="product-media-column" aria-labelledby="main-photo-heading">
+          <div className="product-media-heading">
+            <span id="main-photo-heading">Main card photo</span>
+            <small>Used on the public card and as the first dialog image.</small>
+          </div>
+          <label>
+            <span>Public image URL</span>
+            <input value={uploadedImage ? "" : item.imageUrl ?? ""} onChange={(event) => { update("imageUrl", event.target.value); setImageMessage(""); }} placeholder={uploadedImage ? "Uploaded image saved with this item" : "/equipment/latitude-laptop.webp"} />
+          </label>
+          <label>
+            <span>Upload main photo</span>
+            <input accept="image/*" onChange={(event) => { uploadImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" />
+          </label>
+          <div className="media-status">
+            <strong>{uploadedImage ? "Uploaded main photo active" : "Use an upload or URL"}</strong>
+            {item.imageUrl && <button className="table-link table-button" onClick={removeImage} type="button">Remove main photo</button>}
+          </div>
+        </section>
+        <section className="product-media-column" aria-labelledby="gallery-photo-heading">
+          <div className="product-media-heading">
+            <span id="gallery-photo-heading">Dialog gallery photos</span>
+            <small>These appear as thumbnails inside the item detail dialog.</small>
+          </div>
+          <label>
+            <span>Upload multiple gallery photos</span>
+            <input accept="image/*" multiple onChange={(event) => { void uploadGalleryImages(event.target.files); event.currentTarget.value = ""; }} type="file" />
+          </label>
+          <label>
+            <span>Extra image URLs</span>
+            <textarea rows={3} value={galleryInput} onChange={(event) => updateGalleryUrls(event.target.value)} placeholder="/equipment/detail-1.webp&#10;/equipment/detail-2.webp" />
+          </label>
+        </section>
       </div>
-      <label className="full">
-        <span>Additional image URLs</span>
-        <textarea rows={4} value={galleryInput} onChange={(event) => updateGalleryUrls(event.target.value)} placeholder="/equipment/detail-1.webp&#10;/equipment/detail-2.webp" />
-      </label>
       {imageMessage && <div className="assistant-saved full">{imageMessage}</div>}
       <label>
         <span>Public website</span>
@@ -247,7 +258,7 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
       {isEquipment && item.imageUrl && (
         <div className="equipment-image-preview full">
           <img src={item.imageUrl} alt={`${item.name || "Equipment"} public card preview`} />
-          <span>Public card image preview</span>
+          <span>Main card photo preview</span>
         </div>
       )}
       {isEquipment && (item.galleryUrls?.length ?? 0) > 0 && (
