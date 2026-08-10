@@ -55,7 +55,7 @@ export async function updateSupportRequestStatus(id: string, status: SupportRequ
   const lastAction = new Date().toISOString();
   const requests = previous.map((request) => request.id === id ? { ...request, status, lastAction } : request);
   writeSupportRequests(requests);
-  const response = await fetch("/api/support-requests", {
+  const response = await fetch("/api/admin/support-requests", {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ id, status }),
