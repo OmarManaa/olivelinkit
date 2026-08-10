@@ -7,7 +7,7 @@ type BrandLogoProps = {
 export function BrandLogo({ className = "" }: BrandLogoProps) {
   return (
     <span className={`brand-mark logo-mark ${className}`.trim()} aria-hidden="true">
-      <Image src="/brand/olivelinkit-palestine-map-logo-mark.png" alt="" height={512} width={512} unoptimized />
+      <Image src="/brand/olivelinkit-bubble-logo.png" alt="" height={1024} width={1024} unoptimized />
     </span>
   );
 }
