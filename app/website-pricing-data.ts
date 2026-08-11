@@ -15,6 +15,10 @@ export type WebsitePricingItem = {
   scope: string[];
   finePrint: string;
   visible: boolean;
+  showOnHome?: boolean;
+  showOnPricingPage?: boolean;
+  featured?: boolean;
+  sortOrder?: number;
 };
 
 export type WebsitePricingContent = {
@@ -235,6 +239,47 @@ export const defaultWebsitePricing: WebsitePricingContent = {
   ],
 };
 
+const defaultHomePricingItemIds = new Set([
+  "quick-remote",
+  "onsite-troubleshooting",
+  "slow-computer-tuneup",
+  "local-password-recovery",
+  "windows-reinstall",
+  "deleted-file-recovery",
+  "backup-setup",
+  "business-onsite",
+]);
+
+export type NormalizedWebsitePricingItem = WebsitePricingItem & {
+  featured: boolean;
+  showOnHome: boolean;
+  showOnPricingPage: boolean;
+  sortOrder: number;
+};
+
+export function normalizePricingItem(item: WebsitePricingItem, index: number): NormalizedWebsitePricingItem {
+  const defaultSortOrder = (index + 1) * 10;
+  const defaultHomeDisplay = defaultHomePricingItemIds.has(item.id);
+  return {
+    ...item,
+    featured: item.featured ?? defaultHomeDisplay,
+    showOnHome: item.showOnHome ?? defaultHomeDisplay,
+    showOnPricingPage: item.showOnPricingPage !== false,
+    sortOrder: typeof item.sortOrder === "number" && Number.isFinite(item.sortOrder) ? item.sortOrder : defaultSortOrder,
+    visible: item.visible !== false,
+  };
+}
+
+export function sortPricingItems(items: WebsitePricingItem[]) {
+  return items
+    .map(normalizePricingItem)
+    .sort((first, second) => first.sortOrder - second.sortOrder || first.title.localeCompare(second.title));
+}
+
+export function pricingItemsForDisplay(pricing: WebsitePricingContent, placement: "home" | "pricing-page") {
+  return sortPricingItems(pricing.items).filter((item) => item.visible && (placement === "home" ? item.showOnHome : item.showOnPricingPage));
+}
+
 function mergeGroups(groups: WebsitePricingGroup[] | undefined) {
   if (!groups?.length) return defaultWebsitePricing.groups;
   return groups.map((group, index) => ({
@@ -244,13 +289,12 @@ function mergeGroups(groups: WebsitePricingGroup[] | undefined) {
 }
 
 function mergeItems(items: WebsitePricingItem[] | undefined) {
-  if (!items?.length) return defaultWebsitePricing.items;
+  if (!items?.length) return defaultWebsitePricing.items.map(normalizePricingItem);
   return items.map((item, index) => ({
-    ...defaultWebsitePricing.items[index % defaultWebsitePricing.items.length],
+    ...(defaultWebsitePricing.items.find((defaultItem) => defaultItem.id === item.id) ?? defaultWebsitePricing.items[index % defaultWebsitePricing.items.length]),
     ...item,
     scope: item.scope?.length ? item.scope : defaultWebsitePricing.items[index % defaultWebsitePricing.items.length].scope,
-    visible: item.visible !== false,
-  }));
+  })).map(normalizePricingItem);
 }
 
 export function mergeWebsitePricing(input: Partial<WebsitePricingContent>): WebsitePricingContent {

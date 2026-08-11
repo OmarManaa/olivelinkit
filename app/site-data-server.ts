@@ -3,7 +3,7 @@ import { getDb } from "../db";
 import { appState } from "../db/schema";
 import { inventory, type InventoryItem } from "./admin/admin-data";
 import { defaultWebsiteContent, type WebsiteContent } from "./website-content-data";
-import { defaultWebsitePricing, mergeWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
+import { mergeWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
 import { defaultWebsiteServices, type WebsiteService } from "./website-services-data";
 
 export type PublishedSiteData = {
@@ -38,7 +38,7 @@ export async function getPublishedSiteData(): Promise<PublishedSiteData> {
   const fallback: PublishedSiteData = {
     content: defaultWebsiteContent,
     services: defaultWebsiteServices,
-    pricing: defaultWebsitePricing,
+    pricing: mergeWebsitePricing({}),
     equipment: publicEquipment(inventory),
   };
 

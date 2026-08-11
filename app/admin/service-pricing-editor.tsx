@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { persistAdminState } from "../persistence-client";
-import { defaultWebsitePricing, pricingRequestTypes, type WebsitePricingContent, type WebsitePricingGroup, type WebsitePricingItem } from "../website-pricing-data";
+import { defaultWebsitePricing, normalizePricingItem, pricingRequestTypes, sortPricingItems, type WebsitePricingContent, type WebsitePricingGroup, type WebsitePricingItem } from "../website-pricing-data";
 import { readWebsitePricing, resetWebsitePricing, saveWebsitePricing } from "../website-pricing-store";
 
 type PricingTab = "copy" | "groups" | "services";
@@ -42,17 +42,20 @@ function cleanPricing(pricing: WebsitePricingContent): WebsitePricingContent {
     intro: pricing.intro.trim() || defaultWebsitePricing.intro,
     disclaimer: pricing.disclaimer.trim() || defaultWebsitePricing.disclaimer,
     groups: safeGroups,
-    items: pricing.items.filter((item) => item.title.trim()).map((item) => ({
-      ...item,
-      groupId: safeGroupIds.has(item.groupId) ? item.groupId : fallbackGroupId,
-      title: item.title.trim(),
-      requestType: item.requestType.trim() || "Quote request",
-      price: item.price.trim() || "Quote first",
-      turnaround: item.turnaround.trim() || "By appointment",
-      description: item.description.trim(),
-      scope: item.scope.filter((scopeItem) => scopeItem.trim()).map((scopeItem) => scopeItem.trim()),
-      finePrint: item.finePrint.trim(),
-    })),
+    items: pricing.items.filter((item) => item.title.trim()).map((item, index) => {
+      const normalizedItem = normalizePricingItem(item, index);
+      return {
+        ...normalizedItem,
+        groupId: safeGroupIds.has(normalizedItem.groupId) ? normalizedItem.groupId : fallbackGroupId,
+        title: normalizedItem.title.trim(),
+        requestType: normalizedItem.requestType.trim() || "Quote request",
+        price: normalizedItem.price.trim() || "Quote first",
+        turnaround: normalizedItem.turnaround.trim() || "By appointment",
+        description: normalizedItem.description.trim(),
+        scope: normalizedItem.scope.filter((scopeItem) => scopeItem.trim()).map((scopeItem) => scopeItem.trim()),
+        finePrint: normalizedItem.finePrint.trim(),
+      };
+    }),
   };
 }
 
@@ -113,7 +116,7 @@ export function ServicePricingEditor() {
     setSaved("");
   }
 
-  function updateItem(id: string, field: keyof WebsitePricingItem, value: string | string[] | boolean) {
+  function updateItem(id: string, field: keyof WebsitePricingItem, value: string | string[] | boolean | number) {
     setPricing((current) => ({
       ...current,
       items: current.items.map((item) => item.id === id ? { ...item, [field]: value } : item),
@@ -139,6 +142,10 @@ export function ServicePricingEditor() {
           scope: ["Initial assessment", "Quote before extra work"],
           finePrint: "Update any conditions or exclusions before publishing.",
           visible: true,
+          showOnHome: false,
+          showOnPricingPage: true,
+          featured: false,
+          sortOrder: (current.items.length + 1) * 10,
         },
       ],
     }));
@@ -184,7 +191,8 @@ export function ServicePricingEditor() {
         <div className="editor-actions">
           <button className="button button-ghost" onClick={addGroup} type="button">Add group</button>
           <button className="button button-ghost" onClick={() => addItem()} type="button">Add service</button>
-          <Link className="button button-ghost" href="/#pricing">Preview pricing</Link>
+          <Link className="button button-ghost" href="/#pricing">Preview home</Link>
+          <Link className="button button-ghost" href="/pricing">Full pricing</Link>
           <button className="button button-ghost" onClick={() => { void resetAll(); }} type="button">Reset defaults</button>
           <button className="button" disabled={isSaving} onClick={() => { void saveAll(); }} type="button">{isSaving ? "Publishing..." : "Publish pricing"}</button>
         </div>
@@ -234,8 +242,11 @@ export function ServicePricingEditor() {
 
         {activeTab === "services" && (
           <div className="pricing-service-groups">
+            <div className="pricing-editor-note">
+              Home preview shows only services marked Home preview, ordered by Display order, with the first eight shown on the homepage.
+            </div>
             {pricing.groups.map((group) => {
-              const groupItems = pricing.items.filter((item) => item.groupId === group.id);
+              const groupItems = sortPricingItems(pricing.items).filter((item) => item.groupId === group.id);
               return (
                 <section className="pricing-service-group" key={group.id}>
                   <header>
@@ -246,16 +257,31 @@ export function ServicePricingEditor() {
                     {groupItems.map((item) => (
                       <article className="pricing-item-editor" key={item.id}>
                         <div className="pricing-item-editor-head">
-                          <label className="pricing-visible-toggle">
-                            <input checked={item.visible} onChange={(event) => updateItem(item.id, "visible", event.target.checked)} type="checkbox" />
-                            <span>Visible</span>
-                          </label>
+                          <div className="pricing-item-editor-flags" aria-label={`${item.title} publishing controls`}>
+                            <label className="pricing-visible-toggle">
+                              <input checked={item.visible !== false} onChange={(event) => updateItem(item.id, "visible", event.target.checked)} type="checkbox" />
+                              <span>Listed</span>
+                            </label>
+                            <label className="pricing-visible-toggle">
+                              <input checked={item.showOnHome === true} onChange={(event) => updateItem(item.id, "showOnHome", event.target.checked)} type="checkbox" />
+                              <span>Home preview</span>
+                            </label>
+                            <label className="pricing-visible-toggle">
+                              <input checked={item.showOnPricingPage !== false} onChange={(event) => updateItem(item.id, "showOnPricingPage", event.target.checked)} type="checkbox" />
+                              <span>Full page</span>
+                            </label>
+                            <label className="pricing-visible-toggle">
+                              <input checked={item.featured === true} onChange={(event) => updateItem(item.id, "featured", event.target.checked)} type="checkbox" />
+                              <span>Featured</span>
+                            </label>
+                          </div>
                           <button className="table-link table-button" onClick={() => removeItem(item.id)} type="button">Remove</button>
                         </div>
                         <label><span>Service title</span><input value={item.title} onChange={(event) => updateItem(item.id, "title", event.target.value)} /></label>
                         <label><span>Price or range</span><input value={item.price} onChange={(event) => updateItem(item.id, "price", event.target.value)} placeholder="$149 - $249" /></label>
                         <label><span>Group</span><select value={item.groupId} onChange={(event) => updateItem(item.id, "groupId", event.target.value)}>{pricing.groups.map((option) => <option key={option.id} value={option.id}>{option.title}</option>)}</select></label>
                         <label><span>Request type</span><select value={item.requestType} onChange={(event) => updateItem(item.id, "requestType", event.target.value)}>{pricingRequestTypes.map((type) => <option key={type}>{type}</option>)}</select></label>
+                        <label><span>Display order</span><input min="0" step="10" type="number" value={item.sortOrder ?? 0} onChange={(event) => updateItem(item.id, "sortOrder", Number(event.target.value))} /></label>
                         <label><span>Turnaround</span><input value={item.turnaround} onChange={(event) => updateItem(item.id, "turnaround", event.target.value)} /></label>
                         <label className="full"><span>Description</span><textarea rows={3} value={item.description} onChange={(event) => updateItem(item.id, "description", event.target.value)} /></label>
                         <label className="full"><span>Included scope, one per line</span><textarea rows={4} value={lines(item.scope)} onChange={(event) => updateItem(item.id, "scope", fromLines(event.target.value))} /></label>

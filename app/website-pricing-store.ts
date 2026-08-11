@@ -1,17 +1,17 @@
 "use client";
 
-import { defaultWebsitePricing, mergeWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
+import { mergeWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
 
 const STORAGE_KEY = "it-services-website-pricing";
 
 export function readWebsitePricing(): WebsitePricingContent {
-  if (typeof window === "undefined") return defaultWebsitePricing;
+  if (typeof window === "undefined") return mergeWebsitePricing({});
   const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return defaultWebsitePricing;
+  if (!raw) return mergeWebsitePricing({});
   try {
     return mergeWebsitePricing(JSON.parse(raw) as Partial<WebsitePricingContent>);
   } catch {
-    return defaultWebsitePricing;
+    return mergeWebsitePricing({});
   }
 }
 
