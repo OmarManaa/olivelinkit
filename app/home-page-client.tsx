@@ -7,15 +7,18 @@ import { businessContact, supportEmailHref, whatsappHref } from "./contact-confi
 import { BrandLogo } from "./brand-logo";
 import type { InventoryItem } from "./admin/admin-data";
 import { EquipmentCards } from "./equipment-cards";
+import { PricingSection } from "./pricing-section";
 import { ServiceCards } from "./service-cards";
 import { SupportAssistant } from "./support-assistant";
 import { defaultWebsiteContent, type WebsiteContent } from "./website-content-data";
+import { defaultWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
 import { readWebsiteContent } from "./website-content-store";
 import type { WebsiteService } from "./website-services-data";
 
 type HomePageClientProps = {
   initialContent?: WebsiteContent;
   initialServices?: WebsiteService[];
+  initialPricing?: WebsitePricingContent;
   initialEquipment?: InventoryItem[];
 };
 
@@ -44,7 +47,7 @@ function themeStyle(content: WebsiteContent) {
   } as CSSProperties;
 }
 
-export function HomePageClient({ initialContent = defaultWebsiteContent, initialServices, initialEquipment }: HomePageClientProps) {
+export function HomePageClient({ initialContent = defaultWebsiteContent, initialServices, initialPricing = defaultWebsitePricing, initialEquipment }: HomePageClientProps) {
   const [content, setContent] = useState<WebsiteContent>(initialContent);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -73,6 +76,7 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
         </Link>
         <nav className="public-nav" aria-label="Main navigation">
           <a href="#services">Services</a>
+          <a href="#pricing">Pricing</a>
           <a href="#who-we-help">Who we help</a>
           <a href="#equipment">Equipment</a>
           <a href="#about">Why us</a>
@@ -96,6 +100,7 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
         </button>
         <nav className={`mobile-nav ${mobileMenuOpen ? "open" : ""}`} id="mobile-site-navigation" aria-label="Mobile navigation">
           <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
+          <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
           <a href="#who-we-help" onClick={() => setMobileMenuOpen(false)}>Who we help</a>
           <a href="#equipment" onClick={() => setMobileMenuOpen(false)}>Equipment</a>
           <a href="#about" onClick={() => setMobileMenuOpen(false)}>Why us</a>
@@ -192,6 +197,8 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
         </div>
         <ServiceCards initialServices={initialServices} />
       </section>
+
+      <PricingSection initialPricing={initialPricing} />
 
       <section className="audience-section" id="who-we-help">
         <div className="section-heading">

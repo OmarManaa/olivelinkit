@@ -6,8 +6,9 @@ import { ServiceIcon } from "../service-icon";
 import { defaultWebsiteServices, serviceIconOptions, type ServiceIconKey, type WebsiteService } from "../website-services-data";
 import { readWebsiteServices, resetWebsiteServices, saveWebsiteServices } from "../website-services-store";
 import { persistAdminState } from "../persistence-client";
+import { pricingRequestTypes } from "../website-pricing-data";
 
-const requestTypes = ["Computer repair", "Business IT", "Network or Wi-Fi", "Microsoft 365 or email", "Security", "Remote support", "Quote request", "Equipment enquiry"];
+const requestTypes = [...pricingRequestTypes, "Equipment enquiry"];
 
 export function WebsiteServicesEditor() {
   const [services, setServices] = useState<WebsiteService[]>(defaultWebsiteServices);

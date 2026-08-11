@@ -11,11 +11,12 @@ const backupKeys = [
   { key: "it-services-quote-drafts", label: "Quotes", note: "Draft, sent, and locally edited quote records" },
   { key: "it-services-prospects", label: "Prospects", note: "Visitors created from requests or quote workflows" },
   { key: "it-services-website-services", label: "Website service cards", note: "Public service card titles, icons, and request mapping" },
+  { key: "it-services-website-pricing", label: "Service pricing", note: "Public repair prices, ranges, groups, and pricing disclaimers" },
   { key: "it-services-website-content", label: "Website content", note: "Homepage copy, CTAs, contact details, and trust text" },
   { key: "it-services-inventory-items", label: "Inventory and equipment", note: "Stock, public visibility, equipment sale cards, and pricing" },
 ];
 
-const refreshEvents = ["support-requests-updated", "jobs-updated", "invoices-updated", "customers-updated", "followups-updated", "quote-drafts-updated", "prospects-updated", "website-services-updated", "website-content-updated", "inventory-items-updated"];
+const refreshEvents = ["support-requests-updated", "jobs-updated", "invoices-updated", "customers-updated", "followups-updated", "quote-drafts-updated", "prospects-updated", "website-services-updated", "website-pricing-updated", "website-content-updated", "inventory-items-updated"];
 
 type BackupFile = {
   app: string;

@@ -5,5 +5,5 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const siteData = await getPublishedSiteData();
-  return <HomePageClient initialContent={siteData.content} initialEquipment={siteData.equipment} initialServices={siteData.services} />;
+  return <HomePageClient initialContent={siteData.content} initialEquipment={siteData.equipment} initialPricing={siteData.pricing} initialServices={siteData.services} />;
 }

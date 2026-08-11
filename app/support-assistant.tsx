@@ -7,22 +7,14 @@ import { readInventoryItems } from "./inventory-store";
 import { submitSupportRequest, type SupportRequest } from "./support-requests-store";
 import { defaultWebsiteContent, type WebsiteContent } from "./website-content-data";
 import { readWebsiteContent } from "./website-content-store";
+import { pricingRequestTypes } from "./website-pricing-data";
 
 type SupportAssistantProps = {
   initialContent?: WebsiteContent;
   initialInventory?: ReturnType<typeof readInventoryItems>;
 };
 
-const issueTypes = [
-  "Computer repair",
-  "Business IT",
-  "Network or Wi-Fi",
-  "Microsoft 365 or email",
-  "Security",
-  "Remote support",
-  "Quote request",
-  "Equipment enquiry",
-];
+const issueTypes = [...pricingRequestTypes, "Equipment enquiry"];
 
 type SelectedItem = NonNullable<SupportRequest["selectedItem"]>;
 

@@ -3,11 +3,13 @@ import { getDb } from "../db";
 import { appState } from "../db/schema";
 import { inventory, type InventoryItem } from "./admin/admin-data";
 import { defaultWebsiteContent, type WebsiteContent } from "./website-content-data";
+import { defaultWebsitePricing, mergeWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
 import { defaultWebsiteServices, type WebsiteService } from "./website-services-data";
 
 export type PublishedSiteData = {
   content: WebsiteContent;
   services: WebsiteService[];
+  pricing: WebsitePricingContent;
   equipment: InventoryItem[];
 };
 
@@ -36,6 +38,7 @@ export async function getPublishedSiteData(): Promise<PublishedSiteData> {
   const fallback: PublishedSiteData = {
     content: defaultWebsiteContent,
     services: defaultWebsiteServices,
+    pricing: defaultWebsitePricing,
     equipment: publicEquipment(inventory),
   };
 
@@ -44,13 +47,14 @@ export async function getPublishedSiteData(): Promise<PublishedSiteData> {
     const rows = await db
       .select()
       .from(appState)
-      .where(inArray(appState.key, ["site-content", "site-services", "inventory"]));
+      .where(inArray(appState.key, ["site-content", "site-services", "site-pricing", "inventory"]));
     const values = new Map(rows.map((row) => [row.key, row.value]));
     const savedInventory = parseValue(values.get("inventory"), inventory);
 
     return {
       content: mergeContent(parseValue<Partial<WebsiteContent>>(values.get("site-content"), {})),
       services: parseValue(values.get("site-services"), defaultWebsiteServices),
+      pricing: mergeWebsitePricing(parseValue<Partial<WebsitePricingContent>>(values.get("site-pricing"), {})),
       equipment: publicEquipment(savedInventory),
     };
   } catch {

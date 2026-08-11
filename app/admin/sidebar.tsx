@@ -70,6 +70,9 @@ export function Sidebar({ adminEmail }: SidebarProps) {
         <Link aria-current={pathname.startsWith("/admin/site-services") ? "page" : undefined} className={pathname.startsWith("/admin/site-services") ? "active" : ""} href="/admin/site-services" onClick={closeMobileMenu}>
           <span>Website Services</span>
         </Link>
+        <Link aria-current={pathname.startsWith("/admin/service-pricing") ? "page" : undefined} className={pathname.startsWith("/admin/service-pricing") ? "active" : ""} href="/admin/service-pricing" onClick={closeMobileMenu}>
+          <span>Service Pricing</span>
+        </Link>
         <Link aria-current={pathname.startsWith("/admin/backup") ? "page" : undefined} className={pathname.startsWith("/admin/backup") ? "active" : ""} href="/admin/backup" onClick={closeMobileMenu}>
           <span>Backup & Restore</span>
         </Link>
