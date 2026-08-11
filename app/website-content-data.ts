@@ -35,6 +35,7 @@ export type WebsiteContent = {
   brandTitle: string;
   brandSubtitle: string;
   logoUrl: string;
+  faviconUrl: string;
   logoAlt: string;
   showBrandText: boolean;
   headerCta: string;
@@ -139,6 +140,7 @@ export const defaultWebsiteContent: WebsiteContent = {
   brandTitle: "OliveLink IT",
   brandSubtitle: "Melbourne IT support for homes and growing businesses",
   logoUrl: "/brand/olivelinkit-bubble-logo.png",
+  faviconUrl: "/brand/olivelinkit-bubble-logo.png",
   logoAlt: "OliveLink IT logo",
   showBrandText: true,
   headerCta: "Request support",

@@ -33,6 +33,7 @@ export function WebsiteContentEditor() {
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
 
@@ -186,6 +187,26 @@ export function WebsiteContentEditor() {
     }
   }
 
+  async function uploadFaviconImage(file?: File) {
+    if (!file) return;
+    setIsUploadingFavicon(true);
+    setSaved("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "favicon");
+      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
+      const payload = await response.json() as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Browser tab icon upload failed.");
+      update("faviconUrl", payload.url);
+      setSaved("Browser tab icon uploaded. Publish changes to update the live website tab.");
+    } catch (error) {
+      setSaved(error instanceof Error ? error.message : "Browser tab icon upload failed.");
+    } finally {
+      setIsUploadingFavicon(false);
+    }
+  }
+
   const theme = content.theme ?? defaultWebsiteContent.theme;
 
   return (
@@ -235,6 +256,23 @@ export function WebsiteContentEditor() {
             <label><span>Brand subtitle</span><input value={content.brandSubtitle} onChange={(event) => update("brandSubtitle", event.target.value)} /></label>
             <label><span>Logo image URL</span><input value={content.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} placeholder="/brand/olivelinkit-bubble-logo.png" /></label>
             <label><span>Logo alt text</span><input value={content.logoAlt} onChange={(event) => update("logoAlt", event.target.value)} /></label>
+            <div className="logo-editor-preview full">
+              <Image src={content.faviconUrl || content.logoUrl || defaultWebsiteContent.faviconUrl} alt="" height={82} width={82} unoptimized />
+              <div>
+                <strong>Current browser tab icon</strong>
+                <small>Use a square PNG, JPEG, or WebP mark. Browsers may cache old tab icons for a little while.</small>
+              </div>
+            </div>
+            <label><span>Browser tab icon URL</span><input value={content.faviconUrl} onChange={(event) => update("faviconUrl", event.target.value)} placeholder="/brand/olivelinkit-bubble-logo.png" /></label>
+            <label className="full"><span>Upload browser tab icon</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingFavicon} onChange={(event) => { void uploadFaviconImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <div className="content-field-group full">
+              <strong>Quick browser tab choices</strong>
+              <div className="inline-button-row">
+                <button className="table-link table-button" onClick={() => update("faviconUrl", content.logoUrl || defaultWebsiteContent.logoUrl)} type="button">Use current logo</button>
+                <button className="table-link table-button" onClick={() => update("faviconUrl", "/brand/olivelinkit-bubble-logo.png")} type="button">Bubble mark</button>
+                <button className="table-link table-button" onClick={() => update("faviconUrl", "/brand/olivelinkit-palestine-map-logo-mark.png")} type="button">Palestine mark</button>
+              </div>
+            </div>
             <label>
               <span>Header brand text</span>
               <select value={content.showBrandText ? "show" : "hide"} onChange={(event) => update("showBrandText", event.target.value === "show")}>
