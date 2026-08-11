@@ -97,6 +97,8 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
   }, [initialItem, mode, sku]);
   const [item, setItem] = useState<InventoryItem>(initialFormItem);
   const [galleryInput, setGalleryInput] = useState(() => formatGalleryUrls(initialFormItem.galleryUrls));
+  const [mainImageName, setMainImageName] = useState(() => initialFormItem.name || initialFormItem.sku || "equipment-main-photo");
+  const [galleryImageName, setGalleryImageName] = useState(() => initialFormItem.name ? `${initialFormItem.name} gallery` : "equipment-gallery-photo");
   const [imageMessage, setImageMessage] = useState("");
   const isEquipment = item.type === "Equipment";
   const uploadedImage = isUploadedImage(item.imageUrl);
@@ -135,10 +137,12 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
     router.push(`/admin/${mode}`);
   }
 
-  async function uploadMedia(file: File) {
+  async function uploadMedia(file: File, imageName?: string) {
     const image = await compressImage(file);
     const formData = new FormData();
     formData.append("file", new File([image], `${file.name.replace(/\.[^.]+$/, "") || "equipment"}.webp`, { type: "image/webp" }));
+    const trimmedName = imageName?.trim();
+    if (trimmedName) formData.append("name", trimmedName);
     const response = await fetch("/api/admin/media", { method: "POST", body: formData });
     const payload = await response.json() as { url?: string; error?: string };
     if (!response.ok || !payload.url) throw new Error(payload.error || "Image upload failed.");
@@ -148,7 +152,7 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
   async function uploadImage(file?: File) {
     if (!file) return;
     try {
-      const url = await uploadMedia(file);
+      const url = await uploadMedia(file, mainImageName || item.name || item.sku);
       const previousKey = mediaKeyFromUrl(item.imageUrl);
       update("imageUrl", url);
       if (previousKey) void fetch(`/api/admin/media?key=${encodeURIComponent(previousKey)}`, { method: "DELETE" });
@@ -164,7 +168,10 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
     try {
       setImageMessage(`Uploading ${selectedFiles.length} item photo${selectedFiles.length === 1 ? "" : "s"}...`);
       const uploadedUrls: string[] = [];
-      for (const file of selectedFiles) uploadedUrls.push(await uploadMedia(file));
+      for (const [index, file] of selectedFiles.entries()) {
+        const name = galleryImageName || `${item.name || item.sku || "equipment"} gallery ${index + 1}`;
+        uploadedUrls.push(await uploadMedia(file, selectedFiles.length === 1 ? name : `${name} ${index + 1}`));
+      }
 
       setItem((current) => {
         const primaryImage = current.imageUrl || uploadedUrls[0] || "";
@@ -223,6 +230,10 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
             <input value={uploadedImage ? "" : item.imageUrl ?? ""} onChange={(event) => { update("imageUrl", event.target.value); setImageMessage(""); }} placeholder={uploadedImage ? "Uploaded image saved with this item" : "/equipment/latitude-laptop.webp"} />
           </label>
           <label>
+            <span>Main photo name</span>
+            <input value={mainImageName} onChange={(event) => setMainImageName(event.target.value)} placeholder="hp-elitedesk-front" />
+          </label>
+          <label>
             <span>Upload main photo</span>
             <input accept="image/*" onChange={(event) => { uploadImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" />
           </label>
@@ -236,6 +247,10 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
             <span id="gallery-photo-heading">Dialog gallery photos</span>
             <small>These appear as thumbnails inside the item detail dialog.</small>
           </div>
+          <label>
+            <span>Gallery photo name</span>
+            <input value={galleryImageName} onChange={(event) => setGalleryImageName(event.target.value)} placeholder="hp-elitedesk-gallery" />
+          </label>
           <label>
             <span>Upload multiple gallery photos</span>
             <input accept="image/*" multiple onChange={(event) => { void uploadGalleryImages(event.target.files); event.currentTarget.value = ""; }} type="file" />

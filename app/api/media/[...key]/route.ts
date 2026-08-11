@@ -7,7 +7,7 @@ type MediaRouteContext = { params: Promise<{ key: string[] }> };
 export async function GET(_request: Request, { params }: MediaRouteContext) {
   const { key: parts } = await params;
   const key = parts.join("/");
-  if ((!key.startsWith("equipment/") && !key.startsWith("hero/") && !key.startsWith("logo/")) || key.includes("..")) return new Response("Not found", { status: 404 });
+  if ((!key.startsWith("equipment/") && !key.startsWith("favicon/") && !key.startsWith("hero/") && !key.startsWith("logo/")) || key.includes("..")) return new Response("Not found", { status: 404 });
 
   try {
     const object = await getBucket().get(key);

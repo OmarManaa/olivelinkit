@@ -7,8 +7,9 @@ import { useEffect, useState } from "react";
 import { defaultWebsiteContent, websiteThemePresets, type WebsiteAudience, type WebsiteContent, type WebsiteTestimonial, type WebsiteTheme } from "../website-content-data";
 import { readWebsiteContent, resetWebsiteContent, saveWebsiteContent } from "../website-content-store";
 import { persistAdminState } from "../persistence-client";
+import { MediaLibraryPanel } from "./media-library-panel";
 
-type ContentTab = "brand" | "hero" | "theme" | "journey" | "sections" | "contact" | "legal";
+type ContentTab = "brand" | "hero" | "theme" | "journey" | "sections" | "media" | "contact" | "legal";
 
 const tabs: { id: ContentTab; label: string }[] = [
   { id: "brand", label: "Brand" },
@@ -16,6 +17,7 @@ const tabs: { id: ContentTab; label: string }[] = [
   { id: "theme", label: "Theme" },
   { id: "journey", label: "Support Journey" },
   { id: "sections", label: "Page Sections" },
+  { id: "media", label: "Media" },
   { id: "contact", label: "Contact & Footer" },
   { id: "legal", label: "Invoice & Legal" },
 ];
@@ -37,6 +39,9 @@ export function WebsiteContentEditor() {
   const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [logoImageName, setLogoImageName] = useState("olivelinkit-logo");
+  const [faviconImageName, setFaviconImageName] = useState("olivelinkit-favicon");
+  const [heroImageName, setHeroImageName] = useState("homepage-hero");
 
   useEffect(() => {
     const refresh = () => setContent(readWebsiteContent());
@@ -148,7 +153,7 @@ export function WebsiteContentEditor() {
     setActiveTab("brand");
   }
 
-  async function uploadHeroImage(file?: File) {
+  async function uploadHeroImage(file?: File, imageName?: string) {
     if (!file) return;
     setIsUploadingHero(true);
     setSaved("");
@@ -156,6 +161,7 @@ export function WebsiteContentEditor() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", "hero");
+      if (imageName?.trim()) formData.append("name", imageName.trim());
       const response = await fetch("/api/admin/media", { method: "POST", body: formData });
       const payload = await response.json() as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Hero image upload failed.");
@@ -168,7 +174,7 @@ export function WebsiteContentEditor() {
     }
   }
 
-  async function uploadLogoImage(file?: File) {
+  async function uploadLogoImage(file?: File, imageName?: string) {
     if (!file) return;
     setIsUploadingLogo(true);
     setSaved("");
@@ -176,6 +182,7 @@ export function WebsiteContentEditor() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", "logo");
+      if (imageName?.trim()) formData.append("name", imageName.trim());
       const response = await fetch("/api/admin/media", { method: "POST", body: formData });
       const payload = await response.json() as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Logo upload failed.");
@@ -188,7 +195,7 @@ export function WebsiteContentEditor() {
     }
   }
 
-  async function uploadFaviconImage(file?: File) {
+  async function uploadFaviconImage(file?: File, imageName?: string) {
     if (!file) return;
     setIsUploadingFavicon(true);
     setSaved("");
@@ -196,6 +203,7 @@ export function WebsiteContentEditor() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("folder", "favicon");
+      if (imageName?.trim()) formData.append("name", imageName.trim());
       const response = await fetch("/api/admin/media", { method: "POST", body: formData });
       const payload = await response.json() as { url?: string; error?: string };
       if (!response.ok || !payload.url) throw new Error(payload.error || "Browser tab icon upload failed.");
@@ -257,7 +265,8 @@ export function WebsiteContentEditor() {
             <label><span>Brand subtitle</span><input value={content.brandSubtitle} onChange={(event) => update("brandSubtitle", event.target.value)} /></label>
             <label><span>Logo image URL</span><input value={content.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} placeholder="/brand/olivelinkit-bubble-logo.png" /></label>
             <label><span>Logo alt text</span><input value={content.logoAlt} onChange={(event) => update("logoAlt", event.target.value)} /></label>
-            <label className="full"><span>Upload logo image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingLogo} onChange={(event) => { void uploadLogoImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <label><span>Logo image name</span><input value={logoImageName} onChange={(event) => setLogoImageName(event.target.value)} placeholder="olivelinkit-bubble-logo" /></label>
+            <label><span>Upload logo image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingLogo} onChange={(event) => { void uploadLogoImage(event.target.files?.[0], logoImageName); event.currentTarget.value = ""; }} type="file" /></label>
             <div className="content-field-group full">
               <strong>Quick logo choices</strong>
               <div className="inline-button-row">
@@ -273,7 +282,8 @@ export function WebsiteContentEditor() {
               </div>
             </div>
             <label><span>Browser tab icon URL</span><input value={content.faviconUrl} onChange={(event) => update("faviconUrl", event.target.value)} placeholder="/brand/olivelinkit-bubble-logo.png" /></label>
-            <label className="full"><span>Upload browser tab icon</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingFavicon} onChange={(event) => { void uploadFaviconImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <label><span>Browser tab icon name</span><input value={faviconImageName} onChange={(event) => setFaviconImageName(event.target.value)} placeholder="olivelinkit-tab-icon" /></label>
+            <label><span>Upload browser tab icon</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingFavicon} onChange={(event) => { void uploadFaviconImage(event.target.files?.[0], faviconImageName); event.currentTarget.value = ""; }} type="file" /></label>
             <div className="content-field-group full">
               <strong>Quick browser tab choices</strong>
               <div className="inline-button-row">
@@ -301,7 +311,8 @@ export function WebsiteContentEditor() {
             <label><span>Hero title</span><input value={content.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
             <label><span>Hero accent</span><input value={content.heroAccent} onChange={(event) => update("heroAccent", event.target.value)} /></label>
             <label><span>Hero image URL</span><input value={content.heroImageUrl} onChange={(event) => update("heroImageUrl", event.target.value)} placeholder="/hero-it-support.webp" /></label>
-            <label className="full"><span>Upload hero image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingHero} onChange={(event) => { void uploadHeroImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <label><span>Hero image name</span><input value={heroImageName} onChange={(event) => setHeroImageName(event.target.value)} placeholder="homepage-hero-support" /></label>
+            <label><span>Upload hero image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingHero} onChange={(event) => { void uploadHeroImage(event.target.files?.[0], heroImageName); event.currentTarget.value = ""; }} type="file" /></label>
             <label className="full"><span>Hero lead</span><textarea rows={4} value={content.heroLead} onChange={(event) => update("heroLead", event.target.value)} /></label>
             <label><span>Primary action</span><input value={content.heroPrimaryCta} onChange={(event) => update("heroPrimaryCta", event.target.value)} /></label>
             <label><span>Secondary action</span><input value={content.heroSecondaryCta} onChange={(event) => update("heroSecondaryCta", event.target.value)} /></label>
@@ -438,6 +449,8 @@ export function WebsiteContentEditor() {
             <label className="full"><span>Footer text</span><input value={content.footerText} onChange={(event) => update("footerText", event.target.value)} /></label>
           </article>
         )}
+
+        {activeTab === "media" && <MediaLibraryPanel />}
 
         {activeTab === "legal" && (
           <article className="content-editor-card">
