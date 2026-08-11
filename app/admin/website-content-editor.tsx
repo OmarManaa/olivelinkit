@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { defaultWebsiteContent, websiteThemePresets, type WebsiteAudience, type WebsiteContent, type WebsiteTestimonial, type WebsiteTheme } from "../website-content-data";
 import { readWebsiteContent, resetWebsiteContent, saveWebsiteContent } from "../website-content-store";
 import { persistAdminState } from "../persistence-client";
+import { compressImageForUpload, readMediaUploadResponse, type MediaUploadPayload } from "./image-upload-utils";
 import { MediaLibraryPanel } from "./media-library-panel";
 
 type ContentTab = "brand" | "hero" | "theme" | "journey" | "sections" | "media" | "contact" | "legal";
@@ -153,19 +154,26 @@ export function WebsiteContentEditor() {
     setActiveTab("brand");
   }
 
+  async function uploadContentImage(file: File, folder: "favicon" | "hero" | "logo", imageName: string | undefined, options: Parameters<typeof compressImageForUpload>[1]) {
+    const uploadFile = await compressImageForUpload(file, options);
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+    formData.append("folder", folder);
+    if (imageName?.trim()) formData.append("name", imageName.trim());
+
+    const response = await fetch("/api/admin/media", { method: "POST", body: formData });
+    const payload: MediaUploadPayload = await readMediaUploadResponse(response);
+    if (!response.ok || !payload.url) throw new Error(payload.error || "Image upload failed.");
+    return payload.url;
+  }
+
   async function uploadHeroImage(file?: File, imageName?: string) {
     if (!file) return;
     setIsUploadingHero(true);
-    setSaved("");
+    setSaved("Optimising hero image before upload...");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "hero");
-      if (imageName?.trim()) formData.append("name", imageName.trim());
-      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
-      const payload = await response.json() as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || "Hero image upload failed.");
-      update("heroImageUrl", payload.url);
+      const url = await uploadContentImage(file, "hero", imageName, { maxWidth: 1800, maxHeight: 1100, quality: 0.84 });
+      update("heroImageUrl", url);
       setSaved("Hero image uploaded. Publish changes to show it on the public website.");
     } catch (error) {
       setSaved(error instanceof Error ? error.message : "Hero image upload failed.");
@@ -177,16 +185,10 @@ export function WebsiteContentEditor() {
   async function uploadLogoImage(file?: File, imageName?: string) {
     if (!file) return;
     setIsUploadingLogo(true);
-    setSaved("");
+    setSaved("Optimising logo before upload...");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "logo");
-      if (imageName?.trim()) formData.append("name", imageName.trim());
-      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
-      const payload = await response.json() as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || "Logo upload failed.");
-      update("logoUrl", payload.url);
+      const url = await uploadContentImage(file, "logo", imageName, { maxWidth: 1024, maxHeight: 1024, quality: 0.9 });
+      update("logoUrl", url);
       setSaved("Logo uploaded. Publish changes to show it on the public website.");
     } catch (error) {
       setSaved(error instanceof Error ? error.message : "Logo upload failed.");
@@ -198,16 +200,10 @@ export function WebsiteContentEditor() {
   async function uploadFaviconImage(file?: File, imageName?: string) {
     if (!file) return;
     setIsUploadingFavicon(true);
-    setSaved("");
+    setSaved("Optimising browser tab icon before upload...");
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "favicon");
-      if (imageName?.trim()) formData.append("name", imageName.trim());
-      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
-      const payload = await response.json() as { url?: string; error?: string };
-      if (!response.ok || !payload.url) throw new Error(payload.error || "Browser tab icon upload failed.");
-      update("faviconUrl", payload.url);
+      const url = await uploadContentImage(file, "favicon", imageName, { maxWidth: 512, maxHeight: 512, quality: 0.9 });
+      update("faviconUrl", url);
       setSaved("Browser tab icon uploaded. Publish changes to update the live website tab.");
     } catch (error) {
       setSaved(error instanceof Error ? error.message : "Browser tab icon upload failed.");

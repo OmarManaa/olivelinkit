@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { InventoryItem } from "./admin-data";
 import { readInventoryItems, saveInventoryItem } from "../inventory-store";
 import { persistAdminState } from "../persistence-client";
+import { compressImageForUpload, readMediaUploadResponse } from "./image-upload-utils";
 
 type InventoryItemFormProps = {
   initialItem?: InventoryItem;
@@ -51,42 +52,6 @@ function parseGalleryUrls(value: string) {
 
 function formatGalleryUrls(urls?: string[]) {
   return uniqueUrls(urls ?? []).join("\n");
-}
-
-function imageFromObjectUrl(url: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Image could not be loaded."));
-    image.src = url;
-  });
-}
-
-async function compressImage(file: File) {
-  if (!file.type.startsWith("image/")) throw new Error("Choose a JPEG, PNG, or WebP image.");
-
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = await imageFromObjectUrl(objectUrl);
-    const maxWidth = 1400;
-    const maxHeight = 820;
-    const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
-    const width = Math.max(1, Math.round(image.width * scale));
-    const height = Math.max(1, Math.round(image.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Image processing is not available in this browser.");
-    context.drawImage(image, 0, 0, width, height);
-
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.84));
-    if (!blob) throw new Error("Image could not be compressed.");
-
-    return blob;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
 }
 
 export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormProps) {
@@ -138,13 +103,13 @@ export function InventoryItemForm({ initialItem, mode, sku }: InventoryItemFormP
   }
 
   async function uploadMedia(file: File, imageName?: string) {
-    const image = await compressImage(file);
+    const image = await compressImageForUpload(file, { maxWidth: 1400, maxHeight: 820, quality: 0.84 });
     const formData = new FormData();
-    formData.append("file", new File([image], `${file.name.replace(/\.[^.]+$/, "") || "equipment"}.webp`, { type: "image/webp" }));
+    formData.append("file", image);
     const trimmedName = imageName?.trim();
     if (trimmedName) formData.append("name", trimmedName);
     const response = await fetch("/api/admin/media", { method: "POST", body: formData });
-    const payload = await response.json() as { url?: string; error?: string };
+    const payload = await readMediaUploadResponse(response);
     if (!response.ok || !payload.url) throw new Error(payload.error || "Image upload failed.");
     return payload.url;
   }

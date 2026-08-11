@@ -169,7 +169,11 @@ export async function POST(request: Request) {
     });
 
     return Response.json({ key, name: imageName, url: `/api/media/${key}` }, { status: 201 });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (/payload too large/i.test(message)) {
+      return Response.json({ error: "That image is too large to upload. Try a smaller or cropped image." }, { status: 413 });
+    }
     return Response.json({ error: "Image upload is unavailable. Check the R2 binding and try again." }, { status: 503 });
   }
 }
