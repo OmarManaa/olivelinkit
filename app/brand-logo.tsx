@@ -1,4 +1,4 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import { defaultWebsiteContent } from "./website-content-data";
 
 type BrandLogoProps = {
@@ -10,7 +10,7 @@ type BrandLogoProps = {
 export function BrandLogo({ alt = "", className = "", src = defaultWebsiteContent.logoUrl }: BrandLogoProps) {
   return (
     <span className={`brand-mark logo-mark ${className}`.trim()} aria-hidden="true">
-      <Image src={src || defaultWebsiteContent.logoUrl} alt={alt} height={1024} width={1024} unoptimized />
+      <img src={src || defaultWebsiteContent.logoUrl} alt={alt} height={1024} width={1024} />
     </span>
   );
 }

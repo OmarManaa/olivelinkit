@@ -39,6 +39,50 @@ function toRequest(row: typeof supportRequests.$inferSelect): SupportRequest {
   };
 }
 
+function cleanStatus(value: unknown): SupportRequest["status"] {
+  return allowedStatuses.includes(value as (typeof allowedStatuses)[number]) ? value as SupportRequest["status"] : "New";
+}
+
+function cleanBackupRequest(value: unknown): SupportRequest | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<SupportRequest>;
+  const id = trimmed(item.id, 80);
+  const name = trimmed(item.name, 120);
+  const details = trimmed(item.details, 4_000);
+  if (!id || !name || !details) return null;
+  return {
+    id,
+    issueType: trimmed(item.issueType, 100) || "Computer repair",
+    name,
+    email: trimmed(item.email, 160) || undefined,
+    phone: trimmed(item.phone, 60) || undefined,
+    details,
+    businessContext: trimmed(item.businessContext, 500) || undefined,
+    selectedService: trimmed(item.selectedService, 180) || undefined,
+    selectedItem: item.selectedItem,
+    status: cleanStatus(item.status),
+    createdAt: trimmed(item.createdAt, 80) || new Date().toISOString(),
+    lastAction: trimmed(item.lastAction, 80) || undefined,
+  };
+}
+
+function dbValues(record: SupportRequest): typeof supportRequests.$inferInsert {
+  return {
+    id: record.id,
+    issueType: record.issueType,
+    name: record.name,
+    email: record.email,
+    phone: record.phone,
+    details: record.details,
+    businessContext: record.businessContext,
+    selectedService: record.selectedService,
+    selectedItem: record.selectedItem ? JSON.stringify(record.selectedItem) : null,
+    status: record.status,
+    createdAt: record.createdAt,
+    lastAction: record.lastAction,
+  };
+}
+
 async function isAdminRequest() {
   const user = await getChatGPTUser();
   return user?.email.toLowerCase() === ADMIN_EMAIL || (process.env.NODE_ENV === "development" && !user);
@@ -105,22 +149,36 @@ export async function POST(request: Request) {
       createdAt: now,
     };
 
-    await getDb().insert(supportRequests).values({
-      id: record.id,
-      issueType: record.issueType,
-      name: record.name,
-      email: record.email,
-      phone: record.phone,
-      details: record.details,
-      businessContext: record.businessContext,
-      selectedService: record.selectedService,
-      selectedItem: record.selectedItem ? JSON.stringify(record.selectedItem) : null,
-      status: record.status,
-      createdAt: record.createdAt,
-    });
+    await getDb().insert(supportRequests).values(dbValues(record));
     await notifyAdmin(record);
 
     return Response.json({ request: record }, { status: 201 });
+  } catch (error) {
+    return Response.json({ error: messageFor(error) }, { status: 503 });
+  }
+}
+
+export async function PUT(request: Request) {
+  if (!await isAdminRequest()) return Response.json({ error: "Unauthorised" }, { status: 401 });
+
+  try {
+    const payload = await request.json() as { requests?: unknown[] };
+    if (!Array.isArray(payload.requests)) return Response.json({ error: "Choose a valid support request backup." }, { status: 400 });
+    if (payload.requests.length > 1_000) return Response.json({ error: "Restore 1000 support requests or fewer at a time." }, { status: 413 });
+
+    const records = payload.requests.map(cleanBackupRequest).filter((item): item is SupportRequest => Boolean(item));
+    if (records.length !== payload.requests.length) return Response.json({ error: "One or more support requests in the backup are invalid." }, { status: 400 });
+
+    const db = getDb();
+    for (const record of records) {
+      await db.insert(supportRequests).values(dbValues(record)).onConflictDoUpdate({
+        target: supportRequests.id,
+        set: dbValues(record),
+      });
+    }
+
+    const rows = await db.select().from(supportRequests).orderBy(desc(supportRequests.createdAt));
+    return Response.json({ ok: true, requests: rows.map(toRequest) });
   } catch (error) {
     return Response.json({ error: messageFor(error) }, { status: 503 });
   }

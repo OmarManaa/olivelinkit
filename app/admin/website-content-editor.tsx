@@ -1,17 +1,18 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
-import Image from "next/image";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { defaultWebsiteContent, websiteThemePresets, type WebsiteAudience, type WebsiteContent, type WebsiteTestimonial, type WebsiteTheme } from "../website-content-data";
 import { readWebsiteContent, resetWebsiteContent, saveWebsiteContent } from "../website-content-store";
 import { persistAdminState } from "../persistence-client";
 
-type ContentTab = "brand" | "theme" | "journey" | "sections" | "contact" | "legal";
+type ContentTab = "brand" | "hero" | "theme" | "journey" | "sections" | "contact" | "legal";
 
 const tabs: { id: ContentTab; label: string }[] = [
-  { id: "brand", label: "Brand & Hero" },
+  { id: "brand", label: "Brand" },
+  { id: "hero", label: "Hero" },
   { id: "theme", label: "Theme" },
   { id: "journey", label: "Support Journey" },
   { id: "sections", label: "Page Sections" },
@@ -244,9 +245,9 @@ export function WebsiteContentEditor() {
       <div aria-labelledby={`content-tab-${activeTab}`} className="content-editor-panel" id={`content-panel-${activeTab}`} role="tabpanel">
         {activeTab === "brand" && (
           <article className="content-editor-card">
-            <header><span>Public identity</span><h2>Brand and hero</h2></header>
+            <header><span>Public identity</span><h2>Brand and logo</h2></header>
             <div className="logo-editor-preview full">
-              <Image src={content.logoUrl || defaultWebsiteContent.logoUrl} alt="" height={82} width={82} unoptimized />
+              <img src={content.logoUrl || defaultWebsiteContent.logoUrl} alt="" height={82} width={82} />
               <div>
                 <strong>Current website logo</strong>
                 <small>Upload a new PNG, JPEG, or WebP logo, then publish changes.</small>
@@ -256,8 +257,16 @@ export function WebsiteContentEditor() {
             <label><span>Brand subtitle</span><input value={content.brandSubtitle} onChange={(event) => update("brandSubtitle", event.target.value)} /></label>
             <label><span>Logo image URL</span><input value={content.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} placeholder="/brand/olivelinkit-bubble-logo.png" /></label>
             <label><span>Logo alt text</span><input value={content.logoAlt} onChange={(event) => update("logoAlt", event.target.value)} /></label>
+            <label className="full"><span>Upload logo image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingLogo} onChange={(event) => { void uploadLogoImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <div className="content-field-group full">
+              <strong>Quick logo choices</strong>
+              <div className="inline-button-row">
+                <button className="table-link table-button" onClick={() => update("logoUrl", "/brand/olivelinkit-bubble-logo.png")} type="button">Bubble mark</button>
+                <button className="table-link table-button" onClick={() => update("logoUrl", "/brand/olivelinkit-palestine-map-logo-mark.png")} type="button">Palestine mark</button>
+              </div>
+            </div>
             <div className="logo-editor-preview full">
-              <Image src={content.faviconUrl || content.logoUrl || defaultWebsiteContent.faviconUrl} alt="" height={82} width={82} unoptimized />
+              <img src={content.faviconUrl || content.logoUrl || defaultWebsiteContent.faviconUrl} alt="" height={82} width={82} />
               <div>
                 <strong>Current browser tab icon</strong>
                 <small>Use a square PNG, JPEG, or WebP mark. Browsers may cache old tab icons for a little while.</small>
@@ -273,6 +282,7 @@ export function WebsiteContentEditor() {
                 <button className="table-link table-button" onClick={() => update("faviconUrl", "/brand/olivelinkit-palestine-map-logo-mark.png")} type="button">Palestine mark</button>
               </div>
             </div>
+            <div className="content-field-group full"><strong>Header display</strong></div>
             <label>
               <span>Header brand text</span>
               <select value={content.showBrandText ? "show" : "hide"} onChange={(event) => update("showBrandText", event.target.value === "show")}>
@@ -280,15 +290,13 @@ export function WebsiteContentEditor() {
                 <option value="hide">Logo only</option>
               </select>
             </label>
-            <label className="full"><span>Upload logo image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingLogo} onChange={(event) => { void uploadLogoImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
-            <div className="content-field-group full">
-              <strong>Quick logo choices</strong>
-              <div className="inline-button-row">
-                <button className="table-link table-button" onClick={() => update("logoUrl", "/brand/olivelinkit-bubble-logo.png")} type="button">Bubble mark</button>
-                <button className="table-link table-button" onClick={() => update("logoUrl", "/brand/olivelinkit-palestine-map-logo-mark.png")} type="button">Palestine mark</button>
-              </div>
-            </div>
             <label><span>Header button</span><input value={content.headerCta} onChange={(event) => update("headerCta", event.target.value)} /></label>
+          </article>
+        )}
+
+        {activeTab === "hero" && (
+          <article className="content-editor-card">
+            <header><span>First screen</span><h2>Hero message and image</h2></header>
             <label><span>Hero eyebrow</span><input value={content.heroEyebrow} onChange={(event) => update("heroEyebrow", event.target.value)} /></label>
             <label><span>Hero title</span><input value={content.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
             <label><span>Hero accent</span><input value={content.heroAccent} onChange={(event) => update("heroAccent", event.target.value)} /></label>

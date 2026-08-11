@@ -1,1 +1,1 @@
-export { GET, PATCH } from "../../support-requests/route";
+export { GET, PATCH, PUT } from "../../support-requests/route";

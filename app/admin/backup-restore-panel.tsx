@@ -1,34 +1,69 @@
 "use client";
 
 import { useState } from "react";
+import { persistAdminState } from "../persistence-client";
+import { persistedStateEntries, type PersistedStateKey } from "../persisted-state";
+import type { SupportRequest } from "../support-requests-store";
 
-const backupKeys = [
-  { key: "it-services-support-requests", label: "Support requests", note: "Website questions and reply workflow states" },
-  { key: "it-services-job-records", label: "Jobs", note: "Converted, resolved, completed, and archived job records" },
-  { key: "it-services-invoices", label: "Invoices", note: "Draft, paid, and no-charge invoice records" },
-  { key: "it-services-customers", label: "Customers", note: "Confirmed customer records created from resolved work" },
-  { key: "it-services-followups", label: "Follow-ups", note: "Customer reminders, due dates, channels, outcomes, and snoozed tasks" },
-  { key: "it-services-quote-drafts", label: "Quotes", note: "Draft, sent, and locally edited quote records" },
-  { key: "it-services-prospects", label: "Prospects", note: "Visitors created from requests or quote workflows" },
-  { key: "it-services-website-services", label: "Website service cards", note: "Public service card titles, icons, and request mapping" },
-  { key: "it-services-website-pricing", label: "Service pricing", note: "Public repair prices, ranges, groups, and pricing disclaimers" },
-  { key: "it-services-website-content", label: "Website content", note: "Homepage copy, CTAs, contact details, and trust text" },
-  { key: "it-services-inventory-items", label: "Inventory and equipment", note: "Stock, public visibility, equipment sale cards, and pricing" },
+const appStateLabels: Record<PersistedStateKey, { label: string; note: string }> = {
+  "site-content": { label: "Website content", note: "Branding, logo, favicon, homepage copy, CTAs, contact details, and invoice settings" },
+  "site-services": { label: "Website service cards", note: "Public service card titles, icons, and request mapping" },
+  "site-pricing": { label: "Service pricing", note: "Public repair prices, ranges, groups, and pricing disclaimers" },
+  inventory: { label: "Inventory and equipment", note: "Stock, public visibility, equipment sale cards, gallery URLs, and pricing" },
+  customers: { label: "Customers", note: "Confirmed customer records created from resolved work" },
+  jobs: { label: "Jobs", note: "Converted, resolved, completed, and archived job records" },
+  quotes: { label: "Quotes", note: "Draft, sent, and locally edited quote records" },
+  invoices: { label: "Invoices", note: "Draft, sent, paid, and no-charge invoice records" },
+  followups: { label: "Follow-ups", note: "Customer reminders, due dates, channels, outcomes, and snoozed tasks" },
+  prospects: { label: "Prospects", note: "Visitors created from requests or quote workflows" },
+};
+
+type BackupEntry = {
+  eventName: string;
+  key: string;
+  label: string;
+  liveRestore: "app-state" | "support-requests";
+  note: string;
+  stateKey?: PersistedStateKey;
+  storageKey: string;
+};
+
+const supportRequestEntry: BackupEntry = {
+  eventName: "support-requests-updated",
+  key: "support-requests",
+  label: "Support requests",
+  liveRestore: "support-requests",
+  note: "Website questions, selected services/items, statuses, and reply workflow states",
+  storageKey: "it-services-support-requests",
+};
+
+const backupEntries: BackupEntry[] = [
+  supportRequestEntry,
+  ...persistedStateEntries.map((entry) => ({
+    eventName: entry.eventName,
+    key: entry.key,
+    label: appStateLabels[entry.key].label,
+    liveRestore: "app-state" as const,
+    note: appStateLabels[entry.key].note,
+    stateKey: entry.key,
+    storageKey: entry.storageKey,
+  })),
 ];
 
-const refreshEvents = ["support-requests-updated", "jobs-updated", "invoices-updated", "customers-updated", "followups-updated", "quote-drafts-updated", "prospects-updated", "website-services-updated", "website-pricing-updated", "website-content-updated", "inventory-items-updated"];
+const refreshEvents = Array.from(new Set(backupEntries.map((entry) => entry.eventName)));
 
 type BackupFile = {
   app: string;
-  version: number;
-  exportedAt: string;
   data: Record<string, string | null>;
+  exportedAt: string;
+  source?: string;
+  version: number;
 };
 
 type ValidatedBackup = {
-  file: BackupFile;
-  counts: Record<string, number>;
   availableKeys: string[];
+  counts: Record<string, number>;
+  file: BackupFile;
 };
 
 function itemCount(raw: string | null) {
@@ -43,10 +78,62 @@ function itemCount(raw: string | null) {
   }
 }
 
-function buildBackup(): BackupFile {
+function parseBackupValue(raw: string | null) {
+  if (raw === null) return null;
+  return JSON.parse(raw) as unknown;
+}
+
+function supportRequestsFromRaw(raw: string | null) {
+  if (raw === null) return [];
+  const parsed = JSON.parse(raw) as unknown;
+  if (!Array.isArray(parsed)) throw new Error("Support requests in this backup are not a valid list.");
+  return parsed as SupportRequest[];
+}
+
+function backupString(value: unknown) {
+  if (value === null || typeof value === "undefined") return null;
+  return JSON.stringify(value);
+}
+
+async function buildBackup(): Promise<BackupFile> {
   const data: Record<string, string | null> = {};
-  for (const item of backupKeys) data[item.key] = window.localStorage.getItem(item.key);
-  return { app: "home-small-business-it-services", version: 1, exportedAt: new Date().toISOString(), data };
+  for (const item of backupEntries) data[item.storageKey] = window.localStorage.getItem(item.storageKey);
+  let source = "browser-admin";
+
+  try {
+    const response = await fetch("/api/admin/state", { cache: "no-store", credentials: "include" });
+    if (response.ok) {
+      const payload = await response.json() as { records?: Record<string, unknown | null> };
+      const records = payload.records ?? {};
+      for (const entry of backupEntries) {
+        if (entry.liveRestore === "app-state" && entry.stateKey && Object.prototype.hasOwnProperty.call(records, entry.stateKey)) {
+          data[entry.storageKey] = backupString(records[entry.stateKey]);
+        }
+      }
+      source = "live-d1";
+    }
+  } catch {
+    source = "browser-admin";
+  }
+
+  try {
+    const response = await fetch("/api/admin/support-requests", { cache: "no-store", credentials: "include" });
+    if (response.ok) {
+      const payload = await response.json() as { requests?: SupportRequest[] };
+      data[supportRequestEntry.storageKey] = backupString(payload.requests ?? []);
+      source = source === "live-d1" ? "live-d1-and-support-requests" : "browser-admin-with-live-support-requests";
+    }
+  } catch {
+    // Browser copy remains available when the live inbox cannot be reached.
+  }
+
+  return {
+    app: "home-small-business-it-services",
+    data,
+    exportedAt: new Date().toISOString(),
+    source,
+    version: 2,
+  };
 }
 
 function dispatchRefresh() {
@@ -57,10 +144,35 @@ function validateBackupText(text: string): ValidatedBackup {
   const parsed = JSON.parse(text) as BackupFile;
   if (parsed.app !== "home-small-business-it-services") throw new Error("This backup belongs to a different app.");
   if (!parsed.data || typeof parsed.data !== "object") throw new Error("Backup data is missing.");
+
   const counts: Record<string, number> = {};
-  const availableKeys = backupKeys.filter((item) => Object.prototype.hasOwnProperty.call(parsed.data, item.key)).map((item) => item.key);
-  for (const key of availableKeys) counts[key] = itemCount(parsed.data[key]);
+  const availableKeys = backupEntries.filter((item) => Object.prototype.hasOwnProperty.call(parsed.data, item.storageKey)).map((item) => item.storageKey);
+  for (const key of availableKeys) {
+    const value = parsed.data[key];
+    if (value !== null && typeof value !== "string") throw new Error("Backup data must contain JSON strings or null values only.");
+    counts[key] = itemCount(value);
+  }
   return { file: parsed, counts, availableKeys };
+}
+
+async function publishSupportRequests(raw: string | null) {
+  const requests = supportRequestsFromRaw(raw);
+  const response = await fetch("/api/admin/support-requests", {
+    method: "PUT",
+    credentials: "include",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ requests }),
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string; requests?: SupportRequest[] };
+  if (!response.ok) return { ok: false, error: payload.error ?? "Support requests were restored locally but not published live." };
+  if (payload.requests) window.localStorage.setItem(supportRequestEntry.storageKey, JSON.stringify(payload.requests));
+  return { ok: true };
+}
+
+async function publishRestoredEntry(entry: BackupEntry, raw: string | null) {
+  if (entry.liveRestore === "support-requests") return publishSupportRequests(raw);
+  if (!entry.stateKey) return { ok: true };
+  return persistAdminState(entry.stateKey, parseBackupValue(raw));
 }
 
 export function BackupRestorePanel() {
@@ -68,9 +180,11 @@ export function BackupRestorePanel() {
   const [validated, setValidated] = useState<ValidatedBackup | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
-  const [message, setMessage] = useState("Ready to edit.");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [message, setMessage] = useState("Ready to export or restore.");
   const [, setPreviewVersion] = useState(0);
-  const currentCounts = typeof window === "undefined" ? {} : Object.fromEntries(backupKeys.map((item) => [item.key, itemCount(window.localStorage.getItem(item.key))]));
+  const currentCounts = typeof window === "undefined" ? {} : Object.fromEntries(backupEntries.map((item) => [item.storageKey, itemCount(window.localStorage.getItem(item.storageKey))]));
 
   const selectedCount = selectedKeys.reduce((total, key) => total + (validated?.counts[key] ?? 0), 0);
 
@@ -78,17 +192,25 @@ export function BackupRestorePanel() {
     setPreviewVersion((current) => current + 1);
   }
 
-  function exportBackup() {
-    const backup = JSON.stringify(buildBackup(), null, 2);
-    const blob = new Blob([backup], { type: "application/json" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `it-services-complete-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-    setBackupText(backup);
-    setMessage("Complete backup exported.");
-    refreshCounts();
+  async function exportBackup() {
+    setIsExporting(true);
+    try {
+      const backupFile = await buildBackup();
+      const backup = JSON.stringify(backupFile, null, 2);
+      const blob = new Blob([backup], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `it-services-complete-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      setBackupText(backup);
+      setMessage(`Complete admin backup exported from ${backupFile.source ?? "browser-admin"}.`);
+      refreshCounts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Backup export failed.");
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   async function chooseFile(file?: File) {
@@ -120,17 +242,37 @@ export function BackupRestorePanel() {
     setSelectedKeys((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
   }
 
-  function restoreSelected() {
+  async function restoreSelected() {
     if (!validated || !confirmed || selectedKeys.length === 0) return;
-    for (const key of selectedKeys) {
-      const value = validated.file.data[key];
-      if (typeof value === "string") window.localStorage.setItem(key, value);
-      if (value === null) window.localStorage.removeItem(key);
+    setIsRestoring(true);
+    try {
+      const warnings: string[] = [];
+      let published = 0;
+      for (const key of selectedKeys) {
+        const entry = backupEntries.find((item) => item.storageKey === key);
+        if (!entry) continue;
+        const value = validated.file.data[key];
+        if (typeof value === "string") window.localStorage.setItem(key, value);
+        if (value === null) window.localStorage.removeItem(key);
+
+        const result = await publishRestoredEntry(entry, value);
+        if (result.ok) {
+          published += 1;
+        } else {
+          warnings.push(`${entry.label}: ${result.error ?? "not published live"}`);
+        }
+      }
+      dispatchRefresh();
+      refreshCounts();
+      setConfirmed(false);
+      setMessage(warnings.length
+        ? `Restored ${selectedKeys.length} section(s) locally and published ${published} live. ${warnings.join(" ")}`
+        : `Restored ${selectedKeys.length} section(s) locally and published ${published} section(s) to the live database.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Restore failed before it could finish.");
+    } finally {
+      setIsRestoring(false);
     }
-    dispatchRefresh();
-    refreshCounts();
-    setMessage(`${selectedKeys.length} section${selectedKeys.length === 1 ? "" : "s"} restored from backup.`);
-    setConfirmed(false);
   }
 
   function clearSelection() {
@@ -142,23 +284,23 @@ export function BackupRestorePanel() {
     <section className="backup-console">
       <div className="backup-status">{message}</div>
       <div className="backup-frame">
-        <h2>Browser Recovery Backup</h2>
+        <h2>Complete Admin Backup</h2>
         <div className="backup-grid">
           <article className="backup-tile backup-tile-accent">
-            <h3>Export this browser&apos;s working copy</h3>
-            <p>Download a JSON recovery copy of the admin records currently available in this browser, including requests, jobs, invoices, customers, quotes, prospects, and public equipment records.</p>
-            <button className="button" onClick={exportBackup} type="button">Export browser backup</button>
+            <h3>Export current admin data</h3>
+            <p>Download a JSON recovery copy of the admin records currently loaded in this browser, including public website content, pricing, services, inventory, jobs, customers, invoices, follow-ups, prospects, quotes, and support requests.</p>
+            <button className="button" disabled={isExporting} onClick={() => { void exportBackup(); }} type="button">{isExporting ? "Exporting..." : "Export complete backup"}</button>
           </article>
           <article className="backup-tile backup-tile-accent">
-            <h3>Staged local restore</h3>
-            <p>Choose a browser backup, validate it, select the areas to restore, then restore only those local records.</p>
+            <h3>Staged restore</h3>
+            <p>Choose a backup, validate it, select the areas to restore, then publish the restored sections back to the live database.</p>
             <input accept="application/json" onChange={(event) => chooseFile(event.target.files?.[0])} type="file" />
             <button className="button" disabled={!backupText} onClick={validateBackup} type="button">1. Validate backup</button>
           </article>
           <article className="backup-tile">
             <h3>Current data summary</h3>
             <div className="backup-count-list">
-              {backupKeys.map((item) => <div key={item.key}><strong>{item.label}</strong><span>{currentCounts[item.key] ?? 0}</span></div>)}
+              {backupEntries.map((item) => <div key={item.storageKey}><strong>{item.label}</strong><span>{currentCounts[item.storageKey] ?? 0}</span></div>)}
             </div>
           </article>
           <article className="backup-tile">
@@ -168,13 +310,13 @@ export function BackupRestorePanel() {
               <button className="button button-ghost" disabled={!validated} onClick={clearSelection} type="button">Clear selection</button>
             </div>
             <div className="restore-list">
-              {backupKeys.map((item) => {
-                const available = Boolean(validated?.availableKeys.includes(item.key));
+              {backupEntries.map((item) => {
+                const available = Boolean(validated?.availableKeys.includes(item.storageKey));
                 return (
-                  <label className={available ? "" : "disabled"} key={item.key}>
-                    <input checked={selectedKeys.includes(item.key)} disabled={!available} onChange={() => toggleKey(item.key)} type="checkbox" />
+                  <label className={available ? "" : "disabled"} key={item.storageKey}>
+                    <input checked={selectedKeys.includes(item.storageKey)} disabled={!available} onChange={() => toggleKey(item.storageKey)} type="checkbox" />
                     <span><strong>{item.label}</strong><small>{item.note}</small></span>
-                    <em>{available ? `${validated?.counts[item.key] ?? 0} records` : "Not in backup"}</em>
+                    <em>{available ? `${validated?.counts[item.storageKey] ?? 0} records` : "Not in backup"}</em>
                   </label>
                 );
               })}
@@ -186,14 +328,15 @@ export function BackupRestorePanel() {
           </article>
           <article className="backup-tile restore-confirm">
             <label>
-              <input checked={confirmed} disabled={!validated || selectedKeys.length === 0} onChange={(event) => setConfirmed(event.target.checked)} type="checkbox" />
-              <span>I understand selected local records will be replaced by the backup snapshot.</span>
+              <input checked={confirmed} disabled={!validated || selectedKeys.length === 0 || isRestoring} onChange={(event) => setConfirmed(event.target.checked)} type="checkbox" />
+              <span>I understand selected sections will replace the local browser copy and then publish to the live database.</span>
             </label>
-            <button className="button" disabled={!validated || !confirmed || selectedKeys.length === 0} onClick={restoreSelected} type="button">2. Restore selected data</button>
+            <button className="button" disabled={!validated || !confirmed || selectedKeys.length === 0 || isRestoring} onClick={() => { void restoreSelected(); }} type="button">{isRestoring ? "Restoring..." : "2. Restore selected data"}</button>
           </article>
           <article className="backup-note">
-            <p><strong>Protected security data:</strong> admin identity, sessions, and authentication are not exported or restored.</p>
-            <p><strong>Live data:</strong> D1 is the source of truth for deployed records. This browser backup is a recovery aid, not a replacement for a D1 backup or export.</p>
+            <p><strong>Protected security data:</strong> admin identity, sessions, authentication, and secrets are not exported or restored.</p>
+            <p><strong>Uploaded media:</strong> backup files store image URLs for logo, favicon, hero, and equipment photos. The image files themselves remain in Cloudflare R2; keep a separate R2 bucket backup/export for full disaster recovery.</p>
+            <p><strong>Support requests:</strong> restored requests are merged into the live inbox by request ID so a restore does not accidentally delete newer enquiries.</p>
           </article>
         </div>
       </div>

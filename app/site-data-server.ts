@@ -2,7 +2,7 @@ import { inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import { appState } from "../db/schema";
 import { inventory, type InventoryItem } from "./admin/admin-data";
-import { defaultWebsiteContent, type WebsiteContent } from "./website-content-data";
+import { mergeWebsiteContent, type WebsiteContent } from "./website-content-data";
 import { mergeWebsitePricing, type WebsitePricingContent } from "./website-pricing-data";
 import { defaultWebsiteServices, type WebsiteService } from "./website-services-data";
 
@@ -26,17 +26,9 @@ function publicEquipment(items: InventoryItem[]) {
   return items.filter((item) => item.type === "Equipment" && item.publicVisible);
 }
 
-function mergeContent(input: Partial<WebsiteContent>) {
-  return {
-    ...defaultWebsiteContent,
-    ...input,
-    theme: { ...defaultWebsiteContent.theme, ...input.theme },
-  };
-}
-
 export async function getPublishedSiteData(): Promise<PublishedSiteData> {
   const fallback: PublishedSiteData = {
-    content: defaultWebsiteContent,
+    content: mergeWebsiteContent({}),
     services: defaultWebsiteServices,
     pricing: mergeWebsitePricing({}),
     equipment: publicEquipment(inventory),
@@ -52,7 +44,7 @@ export async function getPublishedSiteData(): Promise<PublishedSiteData> {
     const savedInventory = parseValue(values.get("inventory"), inventory);
 
     return {
-      content: mergeContent(parseValue<Partial<WebsiteContent>>(values.get("site-content"), {})),
+      content: mergeWebsiteContent(parseValue<Partial<WebsiteContent>>(values.get("site-content"), {})),
       services: parseValue(values.get("site-services"), defaultWebsiteServices),
       pricing: mergeWebsitePricing(parseValue<Partial<WebsitePricingContent>>(values.get("site-pricing"), {})),
       equipment: publicEquipment(savedInventory),
