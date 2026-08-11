@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { customers as baseCustomers, type Customer, type Job } from "./admin-data";
 import { findCustomerMatches, type CustomerMatches } from "./customers-store";
-import { readJobs, resolveJobRecord } from "./jobs-store";
+import { latestJobHistory, readJobs, resolveJobRecord } from "./jobs-store";
 
 type JobsTableProps = {
   jobs: Job[];
@@ -42,6 +42,12 @@ function billingSummary(action: ResolveForm["billingAction"]) {
   if (action === "already-paid") return "Create a paid invoice record for your books.";
   if (action === "no-charge") return "Close the work with a zero-dollar no-charge record.";
   return "Create a draft invoice to send after review.";
+}
+
+function latestHistorySummary(job: Job) {
+  const entry = latestJobHistory(job);
+  if (!entry) return "";
+  return `${entry.type}: ${entry.note}`;
 }
 
 export function JobsTable({ jobs }: JobsTableProps) {
@@ -190,7 +196,10 @@ export function JobsTable({ jobs }: JobsTableProps) {
                 <td><strong>{job.reference}</strong><small>{job.serviceType}</small></td>
                 <td>{job.customer}</td>
                 <td>{job.device}</td>
-                <td className="job-issue-cell">{job.issue}</td>
+                <td className="job-issue-cell">
+                  {job.issue}
+                  {latestHistorySummary(job) && <small>{latestHistorySummary(job)}</small>}
+                </td>
                 <td><span className={`pill ${job.tone}`}>{job.status}</span></td>
                 <td><span className={job.priority === "High" ? "stock-low" : ""}>{job.priority}</span></td>
                 <td>{job.serviceType}</td>

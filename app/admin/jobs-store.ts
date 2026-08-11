@@ -1,12 +1,64 @@
 "use client";
 
-import { jobs as seedJobs, type Job } from "./admin-data";
+import { jobs as seedJobs, type Job, type JobHistoryEntry } from "./admin-data";
 import { type CustomerMergeDecision, upsertCustomerFromResolvedJob } from "./customers-store";
 import { createInvoiceFromResolvedJob } from "./invoices-store";
 import { upsertProspect } from "./prospects-store";
 import type { SupportRequest } from "../support-requests-store";
 
 const STORAGE_KEY = "it-services-job-records";
+
+type JobHistoryInput = {
+  author?: string;
+  note: string;
+  status?: string;
+  type: string;
+};
+
+function timestamp() {
+  return new Date().toISOString();
+}
+
+function historyId() {
+  return `JH-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function historyTime(entry: JobHistoryEntry) {
+  const time = new Date(entry.at).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function sortHistory(entries: JobHistoryEntry[]) {
+  return [...entries].sort((a, b) => historyTime(b) - historyTime(a));
+}
+
+function createHistoryEntry(input: JobHistoryInput): JobHistoryEntry {
+  return {
+    id: historyId(),
+    at: timestamp(),
+    type: input.type,
+    note: input.note.trim(),
+    author: input.author?.trim() || "Omar",
+    status: input.status,
+  };
+}
+
+export function historyForJob(job: Job): JobHistoryEntry[] {
+  if (Array.isArray(job.history) && job.history.length > 0) return sortHistory(job.history);
+  if (!job.issue?.trim()) return [];
+  return [{
+    id: `${job.reference}-initial-note`,
+    at: job.updatedAt || "",
+    type: "Initial issue",
+    note: job.issue,
+    author: job.owner,
+    status: job.status,
+  }];
+}
+
+export function latestJobHistory(job: Job) {
+  return historyForJob(job)[0];
+}
 
 function dedupeJobs(records: Job[]) {
   const byReference = new Map<string, Job>();
@@ -92,6 +144,8 @@ export function saveJobRecord(input: {
   resolutionSummary?: string;
   billingStatus?: Job["billingStatus"];
   invoiceReference?: string;
+  history?: JobHistoryEntry[];
+  historyEntry?: JobHistoryInput;
   syncProspect?: boolean;
 }) {
   const records = readSavedJobs();
@@ -99,6 +153,34 @@ export function saveJobRecord(input: {
   const existing = records.find((record) => record.reference === reference) || seedJobs.find((record) => record.reference === reference);
   const priority = input.priority || existing?.priority || "Normal";
   const status = input.status || existing?.status || "New";
+  const history = input.history ? sortHistory(input.history) : existing ? historyForJob(existing) : [];
+  const newHistoryEntries: JobHistoryEntry[] = [];
+
+  if (!existing && input.issue?.trim()) {
+    newHistoryEntries.push(createHistoryEntry({
+      type: "Job created",
+      note: input.issue,
+      author: input.owner,
+      status,
+    }));
+  }
+
+  if (existing && existing.status !== status) {
+    newHistoryEntries.push(createHistoryEntry({
+      type: "Status change",
+      note: `Status changed from ${existing.status} to ${status}.`,
+      author: input.owner || existing.owner,
+      status,
+    }));
+  }
+
+  if (input.historyEntry?.note.trim()) {
+    newHistoryEntries.push(createHistoryEntry({
+      ...input.historyEntry,
+      status: input.historyEntry.status || status,
+    }));
+  }
+
   const job: Job = {
     reference,
     customer: input.customer || existing?.customer || "Website visitor",
@@ -119,6 +201,7 @@ export function saveJobRecord(input: {
     resolutionSummary: input.resolutionSummary ?? existing?.resolutionSummary,
     billingStatus: input.billingStatus ?? existing?.billingStatus,
     invoiceReference: input.invoiceReference ?? existing?.invoiceReference,
+    history: sortHistory([...newHistoryEntries, ...history]),
   };
   const merged = dedupeJobs(
     records.some((record) => record.reference === reference)
@@ -189,6 +272,13 @@ export function resolveJobRecord(input: {
     resolutionSummary: input.resolutionSummary,
     billingStatus,
     invoiceReference: invoice.reference,
+    history: input.job.history,
+    historyEntry: {
+      type: "Resolution",
+      note: input.resolutionSummary || "Job completed.",
+      author: input.job.owner,
+      status: "Completed",
+    },
     syncProspect: false,
   });
 

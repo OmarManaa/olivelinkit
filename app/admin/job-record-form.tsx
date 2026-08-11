@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { jobs as seedJobs, type Job } from "./admin-data";
-import { readJobs, saveJobRecord } from "./jobs-store";
+import { jobs as seedJobs, type Job, type JobHistoryEntry } from "./admin-data";
+import { historyForJob, readJobs, saveJobRecord } from "./jobs-store";
 
 type JobRecordFormProps = {
   jobReference: string;
@@ -30,6 +30,8 @@ function blankJob(reference: string): Job {
 export function JobRecordForm({ jobReference, initialJob }: JobRecordFormProps) {
   const router = useRouter();
   const [job, setJob] = useState<Job>(initialJob ?? blankJob(jobReference));
+  const [historyType, setHistoryType] = useState("Progress note");
+  const [historyNote, setHistoryNote] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -44,12 +46,8 @@ export function JobRecordForm({ jobReference, initialJob }: JobRecordFormProps) 
     setJob((current) => ({ ...current, [field]: value }));
   }
 
-  function save() {
-    if (!job.customer.trim() || !job.issue.trim()) {
-      setNotice("Add the customer and issue before saving the job.");
-      return;
-    }
-    saveJobRecord({
+  function jobInput(historyEntry?: { note: string; type: string }) {
+    return {
       reference: job.reference,
       customer: job.customer.trim(),
       email: job.email,
@@ -67,9 +65,49 @@ export function JobRecordForm({ jobReference, initialJob }: JobRecordFormProps) 
       resolutionSummary: job.resolutionSummary,
       billingStatus: job.billingStatus,
       invoiceReference: job.invoiceReference,
-    });
+      history: job.history,
+      historyEntry: historyEntry ? {
+        ...historyEntry,
+        author: job.owner.trim() || "Omar",
+        status: job.status,
+      } : undefined,
+    };
+  }
+
+  function canSave() {
+    if (!job.customer.trim() || !job.issue.trim()) {
+      setNotice("Add the customer and issue before saving the job.");
+      return false;
+    }
+    return true;
+  }
+
+  function save() {
+    if (!canSave()) {
+      return;
+    }
+    saveJobRecord(jobInput());
     router.push("/admin/jobs");
   }
+
+  function addHistoryNote() {
+    if (!historyNote.trim()) {
+      setNotice("Write the note before adding it to the job history.");
+      return;
+    }
+    if (!canSave()) return;
+    const saved = saveJobRecord(jobInput({ type: historyType, note: historyNote.trim() }));
+    setJob(saved);
+    setHistoryNote("");
+    setNotice("History note saved with date and time.");
+  }
+
+  function historyDate(entry: JobHistoryEntry) {
+    const date = new Date(entry.at);
+    return Number.isNaN(date.getTime()) ? entry.at || "Earlier" : date.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  const history = historyForJob(job);
 
   return (
     <form className="admin-form quote-form">
@@ -125,6 +163,45 @@ export function JobRecordForm({ jobReference, initialJob }: JobRecordFormProps) 
         <span>Issue and work notes</span>
         <textarea onChange={(event) => update("issue", event.target.value)} rows={6} value={job.issue} />
       </label>
+      <section className="job-history-panel full">
+        <header>
+          <div>
+            <span>Activity history</span>
+            <strong>{history.length} saved update{history.length === 1 ? "" : "s"}</strong>
+          </div>
+          <small>Use this for parts delays, supplier ETA, customer updates, diagnosis notes, and work completed.</small>
+        </header>
+        <div className="job-history-entry-form">
+          <label>
+            <span>Update type</span>
+            <select value={historyType} onChange={(event) => setHistoryType(event.target.value)}>
+              <option>Progress note</option>
+              <option>Waiting parts</option>
+              <option>Parts ordered</option>
+              <option>Customer update</option>
+              <option>Diagnosis</option>
+              <option>Internal note</option>
+            </select>
+          </label>
+          <label>
+            <span>New note</span>
+            <textarea value={historyNote} onChange={(event) => setHistoryNote(event.target.value)} placeholder="e.g. Waiting on replacement screen from supplier, ETA Friday 2pm." rows={3} />
+          </label>
+          <button className="button button-ghost" onClick={addHistoryNote} type="button">Add note to history</button>
+        </div>
+        <div className="job-history-list">
+          {history.map((entry) => (
+            <article key={entry.id}>
+              <div>
+                <strong>{entry.type}</strong>
+                <span>{historyDate(entry)}{entry.author ? ` - ${entry.author}` : ""}{entry.status ? ` - ${entry.status}` : ""}</span>
+              </div>
+              <p>{entry.note}</p>
+            </article>
+          ))}
+          {history.length === 0 && <div className="empty-note">No job history recorded yet.</div>}
+        </div>
+      </section>
       {notice && <div className="workflow-notice full">{notice}</div>}
       <div className="form-actions">
         <Link className="button button-ghost" href="/admin/jobs">Cancel</Link>

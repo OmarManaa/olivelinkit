@@ -11,7 +11,7 @@ const appStateLabels: Record<PersistedStateKey, { label: string; note: string }>
   "site-pricing": { label: "Service pricing", note: "Public repair prices, ranges, groups, and pricing disclaimers" },
   inventory: { label: "Inventory and equipment", note: "Stock, public visibility, equipment sale cards, gallery URLs, and pricing" },
   customers: { label: "Customers", note: "Confirmed customer records created from resolved work" },
-  jobs: { label: "Jobs", note: "Converted, resolved, completed, and archived job records" },
+  jobs: { label: "Jobs", note: "Converted, resolved, completed, archived job records, and timestamped job history" },
   quotes: { label: "Quotes", note: "Draft, sent, and locally edited quote records" },
   invoices: { label: "Invoices", note: "Draft, sent, paid, and no-charge invoice records" },
   followups: { label: "Follow-ups", note: "Customer reminders, due dates, channels, outcomes, and snoozed tasks" },

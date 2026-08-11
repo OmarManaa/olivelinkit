@@ -7,6 +7,15 @@ export const metrics = [
   ["Revenue this month", "$2,450", "+12%"],
 ];
 
+export type JobHistoryEntry = {
+  id: string;
+  at: string;
+  type: string;
+  note: string;
+  author?: string;
+  status?: string;
+};
+
 export type Job = {
   reference: string;
   customer: string;
@@ -27,6 +36,7 @@ export type Job = {
   resolutionSummary?: string;
   billingStatus?: "Draft invoice" | "Invoice sent" | "Paid" | "No charge" | "Already paid";
   invoiceReference?: string;
+  history?: JobHistoryEntry[];
 };
 
 export const jobs: Job[] = [

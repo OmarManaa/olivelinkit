@@ -166,6 +166,11 @@ export function AdminRecordForm({ section, fields }: AdminRecordFormProps) {
         issue: valueFor("Issue") || sourceDetails || "New support job",
         priority: valueFor("Priority") || "Normal",
         serviceType: sourceServiceType || (sourceIssueType ? serviceTypeFor(sourceIssueType) : "Workshop repair"),
+        historyEntry: notes.trim() ? {
+          type: requestId ? "Converted request" : "Internal note",
+          note: notes.trim(),
+          author: "Omar",
+        } : undefined,
       });
     }
     if (section === "invoices") {
