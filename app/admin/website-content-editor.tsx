@@ -132,7 +132,7 @@ export function WebsiteContentEditor() {
     setContent(publishedContent);
     setDirty(false);
     const persisted = await persistAdminState("site-content", publishedContent);
-    setSaved(persisted ? "Website content published." : "Saved in this browser, but the live publish was not accepted. Refresh the admin page and try again.");
+    setSaved(persisted.ok ? "Website content published." : `Saved in this browser, but not live: ${persisted.error}`);
     setIsSaving(false);
   }
 

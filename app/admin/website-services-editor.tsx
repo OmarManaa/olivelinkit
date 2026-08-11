@@ -32,7 +32,7 @@ export function WebsiteServicesEditor() {
     setIsSaving(true);
     saveWebsiteServices(services);
     const persisted = await persistAdminState("site-services", services);
-    setSaved(persisted ? "Service cards published." : "Saved in this browser, but the live publish was not accepted. Refresh the admin page and try again.");
+    setSaved(persisted.ok ? "Service cards published." : `Saved in this browser, but not live: ${persisted.error}`);
     setIsSaving(false);
   }
 
