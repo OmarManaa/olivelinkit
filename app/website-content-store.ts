@@ -8,6 +8,7 @@ function mergeContent(input: Partial<WebsiteContent>) {
   return {
     ...defaultWebsiteContent,
     ...input,
+    theme: { ...defaultWebsiteContent.theme, ...input.theme },
     trustItems: input.trustItems?.length ? input.trustItems : defaultWebsiteContent.trustItems,
     serviceHighlights: input.serviceHighlights?.length ? input.serviceHighlights : defaultWebsiteContent.serviceHighlights,
     testimonials: input.testimonials?.length ? input.testimonials : defaultWebsiteContent.testimonials,

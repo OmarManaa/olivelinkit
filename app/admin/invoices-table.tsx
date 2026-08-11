@@ -212,7 +212,7 @@ export function InvoicesTable({ invoices }: InvoicesTableProps) {
             )}
             <header className="invoice-header">
               <div>
-                <BrandLogo />
+                <BrandLogo alt={settings.logoAlt} src={settings.logoUrl} />
                 <strong>{settings.businessLegalName}</strong>
                 <small>{settings.businessAddress}</small>
                 {settings.businessAbn && <small>ABN: {settings.businessAbn}</small>}

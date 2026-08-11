@@ -24,6 +24,14 @@ function publicEquipment(items: InventoryItem[]) {
   return items.filter((item) => item.type === "Equipment" && item.publicVisible);
 }
 
+function mergeContent(input: Partial<WebsiteContent>) {
+  return {
+    ...defaultWebsiteContent,
+    ...input,
+    theme: { ...defaultWebsiteContent.theme, ...input.theme },
+  };
+}
+
 export async function getPublishedSiteData(): Promise<PublishedSiteData> {
   const fallback: PublishedSiteData = {
     content: defaultWebsiteContent,
@@ -41,7 +49,7 @@ export async function getPublishedSiteData(): Promise<PublishedSiteData> {
     const savedInventory = parseValue(values.get("inventory"), inventory);
 
     return {
-      content: { ...defaultWebsiteContent, ...parseValue<Partial<WebsiteContent>>(values.get("site-content"), {}) },
+      content: mergeContent(parseValue<Partial<WebsiteContent>>(values.get("site-content"), {})),
       services: parseValue(values.get("site-services"), defaultWebsiteServices),
       equipment: publicEquipment(savedInventory),
     };

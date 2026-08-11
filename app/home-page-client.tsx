@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { businessContact, supportEmailHref, whatsappHref } from "./contact-config";
 import { BrandLogo } from "./brand-logo";
@@ -32,6 +33,17 @@ function structuredBusinessData(content: WebsiteContent) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
+function themeStyle(content: WebsiteContent) {
+  const theme = content.theme ?? defaultWebsiteContent.theme;
+  return {
+    "--blue": theme.primaryColor,
+    "--teal": theme.secondaryColor,
+    "--navy": theme.darkColor,
+    "--amber": theme.accentColor,
+    "--green": theme.successColor,
+  } as CSSProperties;
+}
+
 export function HomePageClient({ initialContent = defaultWebsiteContent, initialServices, initialEquipment }: HomePageClientProps) {
   const [content, setContent] = useState<WebsiteContent>(initialContent);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,16 +58,18 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
   const consultingHref = `/?${new URLSearchParams({ requestType: "Business IT", service: "IT planning and technology advice" }).toString()}#support-assistant`;
 
   return (
-    <main className="public-site" id="main-content">
+    <main className="public-site" id="main-content" style={themeStyle(content)}>
       <a className="skip-link" href="#services">Skip to services</a>
       <script dangerouslySetInnerHTML={{ __html: structuredBusinessData(content) }} type="application/ld+json" />
       <header className="site-header">
-        <Link className="brand" href="/" aria-label={`${content.brandTitle} home`}>
-          <BrandLogo />
-          <span>
-            <strong>{content.brandTitle}</strong>
-            <small>{content.brandSubtitle}</small>
-          </span>
+        <Link className={`brand ${content.showBrandText ? "" : "brand-logo-only"}`.trim()} href="/" aria-label={`${content.brandTitle} home`}>
+          <BrandLogo alt={content.logoAlt} src={content.logoUrl} />
+          {content.showBrandText && (
+            <span>
+              <strong>{content.brandTitle}</strong>
+              <small>{content.brandSubtitle}</small>
+            </span>
+          )}
         </Link>
         <nav className="public-nav" aria-label="Main navigation">
           <a href="#services">Services</a>

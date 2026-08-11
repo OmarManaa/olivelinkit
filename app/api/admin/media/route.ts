@@ -27,7 +27,8 @@ export async function POST(request: Request) {
     if (!allowedTypes.has(file.type)) return Response.json({ error: "Upload a WebP, JPEG, or PNG image." }, { status: 400 });
     if (file.size > 4 * 1024 * 1024) return Response.json({ error: "Keep the uploaded image below 4 MB." }, { status: 413 });
 
-    const folder = formData.get("folder") === "hero" ? "hero" : "equipment";
+    const requestedFolder = formData.get("folder");
+    const folder = requestedFolder === "hero" || requestedFolder === "logo" ? requestedFolder : "equipment";
     const key = `${folder}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${extensionFor(file.type)}`;
     await getBucket().put(key, await file.arrayBuffer(), {
       httpMetadata: {
@@ -46,7 +47,7 @@ export async function DELETE(request: Request) {
   if (!await isAdminRequest()) return Response.json({ error: "Unauthorised" }, { status: 401 });
 
   const key = new URL(request.url).searchParams.get("key") ?? "";
-  if ((!key.startsWith("equipment/") && !key.startsWith("hero/")) || key.includes("..")) {
+  if ((!key.startsWith("equipment/") && !key.startsWith("hero/") && !key.startsWith("logo/")) || key.includes("..")) {
     return Response.json({ error: "Invalid image key." }, { status: 400 });
   }
 

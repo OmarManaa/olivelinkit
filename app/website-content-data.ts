@@ -20,9 +20,23 @@ export type WebsiteTestimonial = {
   context: string;
 };
 
+export type WebsiteThemePreset = "olive" | "ocean" | "slate" | "gold" | "custom";
+
+export type WebsiteTheme = {
+  preset: WebsiteThemePreset;
+  primaryColor: string;
+  secondaryColor: string;
+  darkColor: string;
+  accentColor: string;
+  successColor: string;
+};
+
 export type WebsiteContent = {
   brandTitle: string;
   brandSubtitle: string;
+  logoUrl: string;
+  logoAlt: string;
+  showBrandText: boolean;
   headerCta: string;
   heroEyebrow: string;
   heroTitle: string;
@@ -83,11 +97,50 @@ export type WebsiteContent = {
   invoicePaymentInstructions: string;
   invoiceFooterNote: string;
   footerText: string;
+  theme: WebsiteTheme;
+};
+
+export const websiteThemePresets: Record<Exclude<WebsiteThemePreset, "custom">, WebsiteTheme> = {
+  olive: {
+    preset: "olive",
+    primaryColor: "#2563eb",
+    secondaryColor: "#0f766e",
+    darkColor: "#111827",
+    accentColor: "#b7791f",
+    successColor: "#15803d",
+  },
+  ocean: {
+    preset: "ocean",
+    primaryColor: "#0f6b99",
+    secondaryColor: "#0f766e",
+    darkColor: "#102a43",
+    accentColor: "#d89b1d",
+    successColor: "#168064",
+  },
+  slate: {
+    preset: "slate",
+    primaryColor: "#334155",
+    secondaryColor: "#0f766e",
+    darkColor: "#0f172a",
+    accentColor: "#a16207",
+    successColor: "#15803d",
+  },
+  gold: {
+    preset: "gold",
+    primaryColor: "#17446a",
+    secondaryColor: "#3f6212",
+    darkColor: "#111827",
+    accentColor: "#b7791f",
+    successColor: "#166534",
+  },
 };
 
 export const defaultWebsiteContent: WebsiteContent = {
   brandTitle: "OliveLink IT",
   brandSubtitle: "Melbourne IT support for homes and growing businesses",
+  logoUrl: "/brand/olivelinkit-bubble-logo.png",
+  logoAlt: "OliveLink IT logo",
+  showBrandText: true,
   headerCta: "Request support",
   heroEyebrow: "IT SUPPORT AND PRACTICAL TECHNOLOGY ADVICE",
   heroTitle: "Reliable IT support,",
@@ -160,4 +213,5 @@ export const defaultWebsiteContent: WebsiteContent = {
   invoicePaymentInstructions: "Payment details provided on request.",
   invoiceFooterNote: "Thank you for your business.",
   footerText: "OliveLink IT - Melbourne",
+  theme: websiteThemePresets.olive,
 };

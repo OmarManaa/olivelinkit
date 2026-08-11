@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
-import { defaultWebsiteContent, type WebsiteAudience, type WebsiteContent, type WebsiteTestimonial } from "../website-content-data";
+import { defaultWebsiteContent, websiteThemePresets, type WebsiteAudience, type WebsiteContent, type WebsiteTestimonial, type WebsiteTheme } from "../website-content-data";
 import { readWebsiteContent, resetWebsiteContent, saveWebsiteContent } from "../website-content-store";
 import { persistAdminState } from "../persistence-client";
 
-type ContentTab = "brand" | "journey" | "sections" | "contact" | "legal";
+type ContentTab = "brand" | "theme" | "journey" | "sections" | "contact" | "legal";
 
 const tabs: { id: ContentTab; label: string }[] = [
   { id: "brand", label: "Brand & Hero" },
+  { id: "theme", label: "Theme" },
   { id: "journey", label: "Support Journey" },
   { id: "sections", label: "Page Sections" },
   { id: "contact", label: "Contact & Footer" },
@@ -30,6 +33,7 @@ export function WebsiteContentEditor() {
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
 
   useEffect(() => {
@@ -44,6 +48,25 @@ export function WebsiteContentEditor() {
 
   function update(field: keyof WebsiteContent, value: string | string[] | boolean) {
     setContent((current) => ({ ...current, [field]: value }));
+    setDirty(true);
+    setSaved("");
+  }
+
+  function updateTheme(field: keyof WebsiteTheme, value: string) {
+    setContent((current) => ({
+      ...current,
+      theme: {
+        ...(current.theme ?? defaultWebsiteContent.theme),
+        [field]: value,
+        preset: field === "preset" ? value as WebsiteTheme["preset"] : "custom",
+      },
+    }));
+    setDirty(true);
+    setSaved("");
+  }
+
+  function applyThemePreset(preset: Exclude<WebsiteTheme["preset"], "custom">) {
+    setContent((current) => ({ ...current, theme: websiteThemePresets[preset] }));
     setDirty(true);
     setSaved("");
   }
@@ -143,6 +166,28 @@ export function WebsiteContentEditor() {
     }
   }
 
+  async function uploadLogoImage(file?: File) {
+    if (!file) return;
+    setIsUploadingLogo(true);
+    setSaved("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "logo");
+      const response = await fetch("/api/admin/media", { method: "POST", body: formData });
+      const payload = await response.json() as { url?: string; error?: string };
+      if (!response.ok || !payload.url) throw new Error(payload.error || "Logo upload failed.");
+      update("logoUrl", payload.url);
+      setSaved("Logo uploaded. Publish changes to show it on the public website.");
+    } catch (error) {
+      setSaved(error instanceof Error ? error.message : "Logo upload failed.");
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  }
+
+  const theme = content.theme ?? defaultWebsiteContent.theme;
+
   return (
     <section className="content-editor">
       <header className="content-editor-toolbar">
@@ -179,8 +224,32 @@ export function WebsiteContentEditor() {
         {activeTab === "brand" && (
           <article className="content-editor-card">
             <header><span>Public identity</span><h2>Brand and hero</h2></header>
+            <div className="logo-editor-preview full">
+              <Image src={content.logoUrl || defaultWebsiteContent.logoUrl} alt="" height={82} width={82} unoptimized />
+              <div>
+                <strong>Current website logo</strong>
+                <small>Upload a new PNG, JPEG, or WebP logo, then publish changes.</small>
+              </div>
+            </div>
             <label><span>Brand title</span><input value={content.brandTitle} onChange={(event) => update("brandTitle", event.target.value)} /></label>
             <label><span>Brand subtitle</span><input value={content.brandSubtitle} onChange={(event) => update("brandSubtitle", event.target.value)} /></label>
+            <label><span>Logo image URL</span><input value={content.logoUrl} onChange={(event) => update("logoUrl", event.target.value)} placeholder="/brand/olivelinkit-bubble-logo.png" /></label>
+            <label><span>Logo alt text</span><input value={content.logoAlt} onChange={(event) => update("logoAlt", event.target.value)} /></label>
+            <label>
+              <span>Header brand text</span>
+              <select value={content.showBrandText ? "show" : "hide"} onChange={(event) => update("showBrandText", event.target.value === "show")}>
+                <option value="show">Show text beside logo</option>
+                <option value="hide">Logo only</option>
+              </select>
+            </label>
+            <label className="full"><span>Upload logo image</span><input accept="image/webp,image/jpeg,image/png" disabled={isUploadingLogo} onChange={(event) => { void uploadLogoImage(event.target.files?.[0]); event.currentTarget.value = ""; }} type="file" /></label>
+            <div className="content-field-group full">
+              <strong>Quick logo choices</strong>
+              <div className="inline-button-row">
+                <button className="table-link table-button" onClick={() => update("logoUrl", "/brand/olivelinkit-bubble-logo.png")} type="button">Bubble mark</button>
+                <button className="table-link table-button" onClick={() => update("logoUrl", "/brand/olivelinkit-palestine-map-logo-mark.png")} type="button">Palestine mark</button>
+              </div>
+            </div>
             <label><span>Header button</span><input value={content.headerCta} onChange={(event) => update("headerCta", event.target.value)} /></label>
             <label><span>Hero eyebrow</span><input value={content.heroEyebrow} onChange={(event) => update("heroEyebrow", event.target.value)} /></label>
             <label><span>Hero title</span><input value={content.heroTitle} onChange={(event) => update("heroTitle", event.target.value)} /></label>
@@ -191,6 +260,44 @@ export function WebsiteContentEditor() {
             <label><span>Primary action</span><input value={content.heroPrimaryCta} onChange={(event) => update("heroPrimaryCta", event.target.value)} /></label>
             <label><span>Secondary action</span><input value={content.heroSecondaryCta} onChange={(event) => update("heroSecondaryCta", event.target.value)} /></label>
             <label className="full"><span>Trust items, one per line</span><textarea rows={4} value={lines(content.trustItems)} onChange={(event) => update("trustItems", fromLines(event.target.value))} /></label>
+          </article>
+        )}
+
+        {activeTab === "theme" && (
+          <article className="content-editor-card">
+            <header><span>Site appearance</span><h2>Theme</h2></header>
+            <div className="theme-preset-grid full">
+              {Object.entries(websiteThemePresets).map(([preset, presetTheme]) => (
+                <button className={theme.preset === preset ? "active" : ""} key={preset} onClick={() => applyThemePreset(preset as Exclude<WebsiteTheme["preset"], "custom">)} type="button">
+                  <span>{preset}</span>
+                  <i style={{ background: presetTheme.primaryColor }} />
+                  <i style={{ background: presetTheme.secondaryColor }} />
+                  <i style={{ background: presetTheme.accentColor }} />
+                </button>
+              ))}
+            </div>
+            <label><span>Primary button color</span><input type="color" value={theme.primaryColor} onChange={(event) => updateTheme("primaryColor", event.target.value)} /></label>
+            <label><span>Secondary accent color</span><input type="color" value={theme.secondaryColor} onChange={(event) => updateTheme("secondaryColor", event.target.value)} /></label>
+            <label><span>Dark panel color</span><input type="color" value={theme.darkColor} onChange={(event) => updateTheme("darkColor", event.target.value)} /></label>
+            <label><span>Warm accent color</span><input type="color" value={theme.accentColor} onChange={(event) => updateTheme("accentColor", event.target.value)} /></label>
+            <label><span>Success/status color</span><input type="color" value={theme.successColor} onChange={(event) => updateTheme("successColor", event.target.value)} /></label>
+            <div
+              className="theme-preview full"
+              style={{
+                "--blue": theme.primaryColor,
+                "--teal": theme.secondaryColor,
+                "--navy": theme.darkColor,
+                "--amber": theme.accentColor,
+                "--green": theme.successColor,
+              } as CSSProperties}
+            >
+              <span>Theme preview</span>
+              <strong>{content.brandTitle}</strong>
+              <div>
+                <button className="button" type="button">Primary action</button>
+                <button className="button button-ghost" type="button">Secondary action</button>
+              </div>
+            </div>
           </article>
         )}
 
