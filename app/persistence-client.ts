@@ -14,7 +14,7 @@ export function replacePersistedState(key: PersistedStateKey, value: unknown | n
 }
 
 export async function persistAdminState(key: PersistedStateKey, value: unknown | null) {
-  const response = await fetch("/api/admin-state", {
+  const response = await fetch("/api/admin/state", {
     method: "PUT",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ key, value }),
