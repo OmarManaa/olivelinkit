@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPublishedSiteData } from "../site-data-server";
+import WebDesignCallout from "./web-design-callout";
 
 export const metadata: Metadata = {
   title: "Web Design & Website Support | OliveLink IT",
@@ -66,9 +67,7 @@ export default async function WebDesignPage() {
           </div>
         </div>
 
-        <div className="general-callout">
-          <p>{siteData.content.webDesignFeatureDescription}</p>
-        </div>
+        <WebDesignCallout text={siteData.content.webDesignCallout ?? siteData.content.webDesignFeatureDescription} />
         <div className="case-study-grid">
           {siteData.portfolio.map((item) => (
             <article className="case-study-card" key={item.id}>

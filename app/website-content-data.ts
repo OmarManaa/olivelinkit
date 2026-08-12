@@ -70,6 +70,7 @@ export type WebsiteContent = {
   webDesignFeatureEyebrow: string;
   webDesignFeatureHeading: string;
   webDesignFeatureDescription: string;
+  webDesignCallout?: string;
   webDesignExampleTitle: string;
   webDesignExampleDescription: string;
   webDesignExampleUrl: string;
@@ -196,6 +197,7 @@ export const defaultWebsiteContent: WebsiteContent = {
   webDesignFeatureEyebrow: "WEBSITE PORTFOLIO",
   webDesignFeatureHeading: "Example website: Restore Cupping",
   webDesignFeatureDescription: "Showcasing a health and wet cupping website built to be clean, easy to use, and search-friendly for local wellness clients.",
+  webDesignCallout: "Showcasing a health and wet cupping website built to be clean, easy to use, and search-friendly for local wellness clients.",
   webDesignExampleTitle: "Restore Cupping",
   webDesignExampleDescription: "Live website example built for a wet cupping practitioner, with modern wellness branding and simple appointment focus.",
   webDesignExampleUrl: "https://restore-cupping.com/",
