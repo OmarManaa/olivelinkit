@@ -76,6 +76,7 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
         </Link>
         <nav className="public-nav" aria-label="Main navigation">
           <a href="#services">Services</a>
+          <a href="/web-design">Website design</a>
           <a href="/pricing">Pricing</a>
           <a href="#who-we-help">Who we help</a>
           <a href="#equipment">Equipment</a>
@@ -100,6 +101,7 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
         </button>
         <nav className={`mobile-nav ${mobileMenuOpen ? "open" : ""}`} id="mobile-site-navigation" aria-label="Mobile navigation">
           <a href="#services" onClick={() => setMobileMenuOpen(false)}>Services</a>
+          <a href="/web-design" onClick={() => setMobileMenuOpen(false)}>Website design</a>
           <a href="/pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
           <a href="#who-we-help" onClick={() => setMobileMenuOpen(false)}>Who we help</a>
           <a href="#equipment" onClick={() => setMobileMenuOpen(false)}>Equipment</a>
