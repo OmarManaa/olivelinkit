@@ -88,6 +88,38 @@ async function isAdminRequest() {
   return user?.email.toLowerCase() === ADMIN_EMAIL || (process.env.NODE_ENV === "development" && !user);
 }
 
+function allowedRequestOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+  try {
+    const url = new URL(origin);
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]" ? origin : null;
+  } catch {
+    return null;
+  }
+}
+
+function withCors(request: Request, response: Response) {
+  const origin = allowedRequestOrigin(request);
+  if (!origin) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set("Access-Control-Allow-Origin", origin);
+  headers.set("Access-Control-Allow-Credentials", "true");
+  headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,OPTIONS");
+  headers.set("Access-Control-Allow-Headers", "content-type");
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+export async function OPTIONS(request: Request) {
+  return withCors(request, new Response(null, { status: 204 }));
+}
+
 function messageFor(error: unknown) {
   const message = error instanceof Error ? error.message : "The request could not be saved.";
   return message.includes("no such table")

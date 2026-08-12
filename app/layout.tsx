@@ -3,11 +3,11 @@ import "./globals.css";
 import { getPublishedSiteData } from "./site-data-server";
 import { defaultWebsiteContent } from "./website-content-data";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "https://olivelinkit.au";
 
 function staticMetadata(iconUrl: string): Metadata {
   return {
-    ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+    metadataBase: new URL(siteUrl),
     title: {
       default: "OliveLink IT | Melbourne IT Support",
       template: "%s | OliveLink IT",

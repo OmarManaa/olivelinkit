@@ -37,6 +37,8 @@ const supportRequestEntry: BackupEntry = {
   storageKey: "it-services-support-requests",
 };
 
+const productionSiteUrl = (process.env.NEXT_PUBLIC_PRODUCTION_SITE_URL ?? "https://olivelinkit.au").replace(/\/$/, "");
+
 const backupEntries: BackupEntry[] = [
   supportRequestEntry,
   ...persistedStateEntries.map((entry) => ({
@@ -136,6 +138,41 @@ async function buildBackup(): Promise<BackupFile> {
   };
 }
 
+async function buildRemoteBackup(): Promise<BackupFile> {
+  const data: Record<string, string | null> = {};
+
+  const stateResponse = await fetch(`${productionSiteUrl}/api/admin/state`, { cache: "no-store", credentials: "include" });
+  if (!stateResponse.ok) {
+    const text = await stateResponse.text().catch(() => "");
+    throw new Error(`Unable to fetch live website admin state from ${productionSiteUrl}. ${stateResponse.status} ${stateResponse.statusText}${text ? `: ${text}` : ""}`);
+  }
+
+  const statePayload = await stateResponse.json() as { records?: Record<string, unknown | null> };
+  const records = statePayload.records ?? {};
+  for (const entry of backupEntries) {
+    if (entry.liveRestore === "app-state" && entry.stateKey && Object.prototype.hasOwnProperty.call(records, entry.stateKey)) {
+      data[entry.storageKey] = backupString(records[entry.stateKey]);
+    }
+  }
+
+  const requestsResponse = await fetch(`${productionSiteUrl}/api/admin/support-requests`, { cache: "no-store", credentials: "include" });
+  if (!requestsResponse.ok) {
+    const text = await requestsResponse.text().catch(() => "");
+    throw new Error(`Unable to fetch live website support requests from ${productionSiteUrl}. ${requestsResponse.status} ${requestsResponse.statusText}${text ? `: ${text}` : ""}`);
+  }
+
+  const requestsPayload = await requestsResponse.json() as { requests?: SupportRequest[] };
+  data[supportRequestEntry.storageKey] = backupString(requestsPayload.requests ?? []);
+
+  return {
+    app: "home-small-business-it-services",
+    data,
+    exportedAt: new Date().toISOString(),
+    source: "production-web",
+    version: 2,
+  };
+}
+
 function dispatchRefresh() {
   for (const eventName of refreshEvents) window.dispatchEvent(new Event(eventName));
 }
@@ -181,6 +218,7 @@ export function BackupRestorePanel() {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [confirmed, setConfirmed] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [message, setMessage] = useState("Ready to export or restore.");
   const [, setPreviewVersion] = useState(0);
@@ -210,6 +248,26 @@ export function BackupRestorePanel() {
       setMessage(error instanceof Error ? error.message : "Backup export failed.");
     } finally {
       setIsExporting(false);
+    }
+  }
+
+  async function importLiveWebsiteBackup() {
+    setIsImporting(true);
+    try {
+      const backupFile = await buildRemoteBackup();
+      const backup = JSON.stringify(backupFile, null, 2);
+      const validatedFile = validateBackupText(backup);
+      setBackupText(backup);
+      setValidated(validatedFile);
+      setSelectedKeys(validatedFile.availableKeys);
+      setConfirmed(false);
+      setMessage(`Live website data fetched from ${productionSiteUrl}. Review and restore the selected sections locally.`);
+    } catch (error) {
+      setMessage(error instanceof Error
+        ? `${error.message} If this keeps failing, export a production backup from the live admin and upload it here manually.`
+        : "Unable to fetch live website data. Export the production backup and upload it manually if needed.");
+    } finally {
+      setIsImporting(false);
     }
   }
 
@@ -296,6 +354,10 @@ export function BackupRestorePanel() {
             <p>Choose a backup, validate it, select the areas to restore, then publish the restored sections back to the live database.</p>
             <input accept="application/json" onChange={(event) => chooseFile(event.target.files?.[0])} type="file" />
             <button className="button" disabled={!backupText} onClick={validateBackup} type="button">1. Validate backup</button>
+            <button className="button button-secondary" disabled={isImporting} onClick={() => { void importLiveWebsiteBackup(); }} type="button">
+              {isImporting ? "Fetching live site..." : "Import from live website"}
+            </button>
+            <small>Requires a production admin login cookie in this browser for the live site.</small>
           </article>
           <article className="backup-tile">
             <h3>Current data summary</h3>
