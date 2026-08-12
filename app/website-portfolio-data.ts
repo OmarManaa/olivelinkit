@@ -15,5 +15,6 @@ export const defaultWebsitePortfolio: WebsitePortfolioItem[] = [
       "Live health and wet cupping website built for local wellness clients with clear service pages, appointment focus, and easy mobile navigation.",
     url: "https://restore-cupping.com/",
     button: "Visit site",
+    imageUrl: "https://via.placeholder.com/900x540?text=Restore+Cupping+Website",
   },
 ];

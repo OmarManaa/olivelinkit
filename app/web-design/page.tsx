@@ -69,6 +69,11 @@ export default async function WebDesignPage() {
         <div className="case-study-grid">
           {siteData.portfolio.map((item) => (
             <article className="case-study-card" key={item.id}>
+              {item.imageUrl ? (
+                <div className="case-study-image">
+                  <img src={item.imageUrl} alt={`Screenshot of ${item.title}`} />
+                </div>
+              ) : null}
               <div className="case-study-details">
                 <h3>{item.title}</h3>
                 <p>Live website example: <a href={item.url} target="_blank" rel="noreferrer">{item.url.replace(/^https?:\/\//, "")}</a></p>

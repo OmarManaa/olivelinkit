@@ -62,6 +62,13 @@ export function WebsitePortfolioEditor() {
         {portfolio.map((item) => (
           <article className="service-editor-card" key={item.id}>
             <div className="service-editor-preview">
+              <div className="service-editor-image-preview">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={`Thumbnail for ${item.title}`} />
+                ) : (
+                  <div className="service-editor-image-placeholder">No thumbnail</div>
+                )}
+              </div>
               <div>
                 <strong>{item.title}</strong>
                 <small>{item.url}</small>
