@@ -57,8 +57,11 @@ export function WebsitePortfolioEditor() {
 
     try {
       const url = await uploadPortfolioImage(file, title || id);
-      updateItem(id, "imageUrl", url);
-      setUploadMessage("Image uploaded. Publish changes to show it live.");
+      const updatedPortfolio = portfolio.map((item) => item.id === id ? { ...item, imageUrl: url } : item);
+      setPortfolio(updatedPortfolio);
+      saveWebsitePortfolio(updatedPortfolio);
+      const persisted = await persistAdminState("site-portfolio", updatedPortfolio);
+      setUploadMessage(persisted.ok ? "Image uploaded and published live." : `Image uploaded locally, but not live: ${persisted.error}`);
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : "Image upload failed.");
     } finally {
