@@ -9,6 +9,7 @@ const appStateLabels: Record<PersistedStateKey, { label: string; note: string }>
   "site-content": { label: "Website content", note: "Branding, logo, favicon, homepage copy, CTAs, contact details, and invoice settings" },
   "site-services": { label: "Website service cards", note: "Public service card titles, icons, and request mapping" },
   "site-pricing": { label: "Service pricing", note: "Public repair prices, ranges, groups, and pricing disclaimers" },
+  "site-portfolio": { label: "Website portfolio", note: "Portfolio case studies, example screenshots and gallery URLs" },
   inventory: { label: "Inventory and equipment", note: "Stock, public visibility, equipment sale cards, gallery URLs, and pricing" },
   customers: { label: "Customers", note: "Confirmed customer records created from resolved work" },
   jobs: { label: "Jobs", note: "Converted, resolved, completed, archived job records, and timestamped job history" },
@@ -129,6 +130,17 @@ async function buildBackup(): Promise<BackupFile> {
     // Browser copy remains available when the live inbox cannot be reached.
   }
 
+  // Include uploaded media manifest when available (metadata only; not image binaries).
+  try {
+    const mediaResponse = await fetch("/api/admin/media", { cache: "no-store", credentials: "include" });
+    if (mediaResponse.ok) {
+      const mediaPayload = await mediaResponse.json() as { items?: unknown[] };
+      data["it-services-media"] = backupString(mediaPayload.items ?? []);
+    }
+  } catch {
+    // ignore media manifest failures — backup still contains site content and support requests
+  }
+
   return {
     app: "home-small-business-it-services",
     data,
@@ -163,6 +175,28 @@ async function buildRemoteBackup(): Promise<BackupFile> {
 
   const requestsPayload = await requestsResponse.json() as { requests?: SupportRequest[] };
   data[supportRequestEntry.storageKey] = backupString(requestsPayload.requests ?? []);
+
+  // Also fetch media manifest from production (metadata only).
+  try {
+    const mediaResponse = await fetch(`${productionSiteUrl}/api/admin/media`, { cache: "no-store", credentials: "include" });
+    if (mediaResponse.ok) {
+      const mediaPayload = await mediaResponse.json() as { items?: unknown[] };
+      data["it-services-media"] = backupString(mediaPayload.items ?? []);
+    }
+  } catch {
+    // ignore media manifest failures
+  }
+
+  // Fetch file metadata from D1 (if available)
+  try {
+    const filesResponse = await fetch(`${productionSiteUrl}/api/admin/files`, { cache: "no-store", credentials: "include" });
+    if (filesResponse.ok) {
+      const filesPayload = await filesResponse.json() as { items?: unknown[] };
+      data["it-services-files"] = backupString(filesPayload.items ?? []);
+    }
+  } catch {
+    // ignore files metadata failures
+  }
 
   return {
     app: "home-small-business-it-services",
