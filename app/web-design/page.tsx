@@ -64,6 +64,9 @@ export default async function WebDesignPage() {
             <p className="eyebrow">{siteData.content.webDesignFeatureEyebrow}</p>
             <h2>{siteData.content.webDesignFeatureHeading}</h2>
           </div>
+        </div>
+
+        <div className="general-callout">
           <p>{siteData.content.webDesignFeatureDescription}</p>
         </div>
         <div className="case-study-grid">
