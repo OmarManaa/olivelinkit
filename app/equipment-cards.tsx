@@ -44,6 +44,7 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState("");
   const [zoomed, setZoomed] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [dragOrigin, setDragOrigin] = useState<{ x: number; y: number } | null>(null);
   const [dragStartOffset, setDragStartOffset] = useState<{ x: number; y: number } | null>(null);
@@ -88,28 +89,31 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
   const modalPhotos = selectedItem ? galleryFor(selectedItem) : [];
   const modalPhoto = selectedPhoto || modalPhotos[0] || "";
 
-  function openItem(item: InventoryItem) {
-    setSelectedItem(item);
-    setSelectedPhoto(galleryFor(item)[0] ?? "");
+  function resetZoom() {
     setZoomed(false);
     setPanOffset({ x: 0, y: 0 });
     setDragOrigin(null);
     setDragStartOffset(null);
+  }
+
+  function resetModalState() {
+    resetZoom();
+    setIsMaximized(false);
+  }
+
+  function openItem(item: InventoryItem) {
+    setSelectedItem(item);
+    setSelectedPhoto(galleryFor(item)[0] ?? "");
+    resetModalState();
   }
 
   function closeModal() {
     setSelectedItem(null);
-    setZoomed(false);
-    setPanOffset({ x: 0, y: 0 });
-    setDragOrigin(null);
-    setDragStartOffset(null);
+    resetModalState();
   }
 
   useEffect(() => {
-    setZoomed(false);
-    setPanOffset({ x: 0, y: 0 });
-    setDragOrigin(null);
-    setDragStartOffset(null);
+    resetModalState();
   }, [selectedPhoto, selectedItem]);
 
   function handleImagePointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -188,8 +192,17 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
       {selectedItem && (
         <div className="equipment-modal" role="dialog" aria-modal="true" aria-labelledby="equipment-modal-title">
           <button className="equipment-modal-backdrop" onClick={() => setSelectedItem(null)} type="button" aria-label="Close item details" />
-          <section className="equipment-modal-shell">
+          <section className={`equipment-modal-shell${isMaximized ? " maximized" : ""}`}>
             <button className="equipment-modal-close" onClick={closeModal} type="button" aria-label="Close item details">x</button>
+            <button
+              className="equipment-modal-maximize"
+              type="button"
+              onClick={() => setIsMaximized((current) => !current)}
+              aria-pressed={isMaximized}
+              aria-label={isMaximized ? "Restore dialog size" : "Maximize dialog"}
+            >
+              {isMaximized ? "🗗" : "🗖"}
+            </button>
             <div className="equipment-modal-gallery">
               <div className={`equipment-modal-main ${modalPhoto ? "has-image" : "image-missing"}${zoomed ? " zoomed" : ""}`}>
                 {modalPhoto ? (
@@ -208,12 +221,15 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
                     <button
                       type="button"
                       className="equipment-modal-zoom-toggle"
-                      onClick={() => setZoomed((current) => !current)}
+                      onClick={() => {
+                        if (zoomed) resetZoom();
+                        else setZoomed(true);
+                      }}
                       aria-pressed={zoomed}
-                      aria-label={zoomed ? "Zoom out image" : "Zoom in image"}
+                      aria-label={zoomed ? "Zoom out and reset image position" : "Zoom in image"}
                     >
                       <span className="equipment-modal-zoom-label">
-                        {zoomed ? "Click to zoom out. Drag to pan." : "Click to zoom in. Pinch to zoom on touch."}
+                        {zoomed ? "Zoom out to reset position" : "Click to zoom in. Pinch to zoom on touch."}
                       </span>
                     </button>
                   </>
