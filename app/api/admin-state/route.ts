@@ -10,15 +10,12 @@ const ADMIN_EMAIL = "omar.manaa@gmail.com";
 
 async function isAdminRequest() {
   const user = await getChatGPTUser();
+import { isAdminRequest } from "../../../app/admin/admin-server";
   return user?.email.toLowerCase() === ADMIN_EMAIL || (process.env.NODE_ENV === "development" && !user);
 }
 
 function allowedRequestOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return null;
-  try {
-    const url = new URL(origin);
-    if (url.hostname === "localhost" || url.hostname === "127.0.0.1") return origin;
   } catch {
     // invalid origin header
   }

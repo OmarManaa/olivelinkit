@@ -1,17 +1,13 @@
 import { getBucket, getDb } from "../../../../db";
 import { appState, supportRequests } from "../../../../db/schema";
 import { getChatGPTUser } from "../../../chatgpt-auth";
+import { isAdminRequest } from "../../../app/admin/admin-server";
 
 export const dynamic = "force-dynamic";
-
-const ADMIN_EMAIL = "omar.manaa@gmail.com";
 const allowedTypes = new Set(["image/webp", "image/jpeg", "image/png"]);
 const allowedMediaPrefixes = ["equipment/", "favicon/", "hero/", "logo/", "portfolio/"] as const;
 
-async function isAdminRequest() {
-  const user = await getChatGPTUser();
-  return user?.email.toLowerCase() === ADMIN_EMAIL || (process.env.NODE_ENV === "development" && !user);
-}
+// server-side admin check uses centralized helper `isAdminRequest`
 
 function extensionFor(type: string) {
   if (type === "image/jpeg") return "jpg";

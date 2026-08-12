@@ -28,6 +28,15 @@ export const files = sqliteTable("files", {
   id: integer("id").primaryKey({ autoIncrement: true }), objectKey: text("object_key").notNull().unique(), originalName: text("original_name").notNull(), contentType: text("content_type"), size: integer("size"), entityType: text("entity_type").notNull(), entityId: integer("entity_id").notNull(), createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+export const admins = sqliteTable("admins", {
+  email: text("email").primaryKey(),
+  name: text("name"),
+  role: text("role"),
+  active: integer("active", { mode: "boolean" }).notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  createdBy: text("created_by"),
+});
+
 // The operational V1 screens keep their existing record shapes while D1 owns the
 // shared, cross-device source of truth. Individual workflow tables can be
 // normalised further without breaking the current console during that migration.
