@@ -59,6 +59,7 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
 
   const contactWhatsApp = whatsappHref("Hi, I need help with IT support.", content.whatsappNumber);
   const consultingHref = `/?${new URLSearchParams({ requestType: "Business IT", service: "IT planning and technology advice" }).toString()}#support-assistant`;
+  const popularServices = (initialServices ?? []).slice(0, 3);
 
   return (
     <main className="public-site" id="main-content" style={themeStyle(content)}>
@@ -107,6 +108,20 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
           <a href="#equipment" onClick={() => setMobileMenuOpen(false)}>Equipment</a>
           <a href="#about" onClick={() => setMobileMenuOpen(false)}>Why us</a>
           <a href="#contact" onClick={() => setMobileMenuOpen(false)}>Contact</a>
+          <div className="mobile-nav-group">
+            <span>Popular services</span>
+            {popularServices.map((service) => {
+              const href = `/?${new URLSearchParams({ requestType: service.requestType, service: service.title }).toString()}#support-assistant`;
+              return (
+                <a key={service.id} href={href} onClick={() => setMobileMenuOpen(false)}>
+                  {service.title}
+                </a>
+              );
+            })}
+            <a className="button button-ghost" href="#services" onClick={() => setMobileMenuOpen(false)}>
+              See all services
+            </a>
+          </div>
           <a className="button" href="#support-assistant" onClick={() => setMobileMenuOpen(false)}>Request IT help</a>
         </nav>
       </header>
