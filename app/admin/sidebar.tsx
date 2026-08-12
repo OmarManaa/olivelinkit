@@ -16,6 +16,7 @@ const workspaceLinks = [
   ["Equipment Sales", "/admin/equipment"],
   ["Follow-ups", "/admin/followups"],
   ["Reports", "/admin/reports"],
+  ["Admin Users", "/admin/users"],
 ];
 
 type SidebarProps = {
