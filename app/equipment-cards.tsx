@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type PointerEvent } from "react";
 import type { InventoryItem } from "./admin/admin-data";
 import { hasStoredInventoryItems, readInventoryItems } from "./inventory-store";
 
@@ -43,6 +43,10 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
   const [items, setItems] = useState<InventoryItem[]>(initialItems);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState("");
+  const [zoomed, setZoomed] = useState(false);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [dragOrigin, setDragOrigin] = useState<{ x: number; y: number } | null>(null);
+  const [dragStartOffset, setDragStartOffset] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -87,6 +91,36 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
   function openItem(item: InventoryItem) {
     setSelectedItem(item);
     setSelectedPhoto(galleryFor(item)[0] ?? "");
+    setZoomed(false);
+    setPanOffset({ x: 0, y: 0 });
+  }
+
+  useEffect(() => {
+    setZoomed(false);
+    setPanOffset({ x: 0, y: 0 });
+    setDragOrigin(null);
+    setDragStartOffset(null);
+  }, [selectedPhoto, selectedItem]);
+
+  function handleImagePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (!zoomed || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragOrigin({ x: event.clientX, y: event.clientY });
+    setDragStartOffset(panOffset);
+  }
+
+  function handleImagePointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!zoomed || !dragOrigin || !dragStartOffset) return;
+    const deltaX = event.clientX - dragOrigin.x;
+    const deltaY = event.clientY - dragOrigin.y;
+    setPanOffset({ x: dragStartOffset.x + deltaX, y: dragStartOffset.y + deltaY });
+  }
+
+  function endImageDrag(event: PointerEvent<HTMLDivElement>) {
+    if (!zoomed) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setDragOrigin(null);
+    setDragStartOffset(null);
   }
 
   return (
@@ -147,8 +181,35 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
           <section className="equipment-modal-shell">
             <button className="equipment-modal-close" onClick={() => setSelectedItem(null)} type="button" aria-label="Close item details">x</button>
             <div className="equipment-modal-gallery">
-              <div className={`equipment-modal-main ${modalPhoto ? "has-image" : "image-missing"}`}>
-                {modalPhoto ? <img src={modalPhoto} alt={selectedItem.name} /> : <b aria-hidden="true">IT</b>}
+              <div className={`equipment-modal-main ${modalPhoto ? "has-image" : "image-missing"}${zoomed ? " zoomed" : ""}`}>
+                {modalPhoto ? (
+                  <>
+                    <div
+                      className={`equipment-modal-image-wrapper${dragOrigin ? " dragging" : ""}`}
+                      onPointerDown={handleImagePointerDown}
+                      onPointerMove={handleImagePointerMove}
+                      onPointerUp={endImageDrag}
+                      onPointerCancel={endImageDrag}
+                      onPointerLeave={endImageDrag}
+                      style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px)` }}
+                    >
+                      <img src={modalPhoto} alt={selectedItem.name} draggable={false} />
+                    </div>
+                    <button
+                      type="button"
+                      className="equipment-modal-zoom-toggle"
+                      onClick={() => setZoomed((current) => !current)}
+                      aria-pressed={zoomed}
+                      aria-label={zoomed ? "Zoom out image" : "Zoom in image"}
+                    >
+                      <span className="equipment-modal-zoom-label">
+                        {zoomed ? "Click to zoom out" : "Click to zoom in"}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <b aria-hidden="true">IT</b>
+                )}
               </div>
               {modalPhotos.length > 1 && (
                 <div className="equipment-thumbnails" aria-label="Item photos">
