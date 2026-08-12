@@ -197,7 +197,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .equipment-modal-image-wrapper{position:absolute;inset:0;cursor:grab;touch-action:none;display:grid;place-items:center}
 .equipment-modal-image-wrapper.dragging{cursor:grabbing}
 .equipment-modal-zoom-toggle{all:unset;cursor:pointer;position:absolute;right:16px;bottom:16px;z-index:2;padding:10px 12px;border-radius:8px;background:rgba(15,23,42,.88);color:white;font-size:12px;font-weight:700}
-.equipment-modal-zoom-label{pointer-events:none}
+.equipment-modal-zoom-label{pointer-events:none;display:block;white-space:nowrap;}
+.equipment-modal-close{position:absolute;right:13px;top:13px;z-index:2;width:36px;height:36px;border:1px solid #d8e0ea;border-radius:8px;background:white;color:#24324a;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 10px 24px rgba(17,24,39,.12)}
 .equipment-modal-main b{color:rgba(37,99,235,.14);font-size:84px;line-height:1}
 .equipment-thumbnails{display:grid;grid-template-columns:repeat(auto-fit,minmax(72px,1fr));gap:8px}
 .equipment-thumbnails button{height:64px;border:2px solid transparent;border-radius:8px;background:white;padding:0;overflow:hidden;cursor:pointer}

@@ -93,6 +93,16 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
     setSelectedPhoto(galleryFor(item)[0] ?? "");
     setZoomed(false);
     setPanOffset({ x: 0, y: 0 });
+    setDragOrigin(null);
+    setDragStartOffset(null);
+  }
+
+  function closeModal() {
+    setSelectedItem(null);
+    setZoomed(false);
+    setPanOffset({ x: 0, y: 0 });
+    setDragOrigin(null);
+    setDragStartOffset(null);
   }
 
   useEffect(() => {
@@ -179,7 +189,7 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
         <div className="equipment-modal" role="dialog" aria-modal="true" aria-labelledby="equipment-modal-title">
           <button className="equipment-modal-backdrop" onClick={() => setSelectedItem(null)} type="button" aria-label="Close item details" />
           <section className="equipment-modal-shell">
-            <button className="equipment-modal-close" onClick={() => setSelectedItem(null)} type="button" aria-label="Close item details">x</button>
+            <button className="equipment-modal-close" onClick={closeModal} type="button" aria-label="Close item details">x</button>
             <div className="equipment-modal-gallery">
               <div className={`equipment-modal-main ${modalPhoto ? "has-image" : "image-missing"}${zoomed ? " zoomed" : ""}`}>
                 {modalPhoto ? (
@@ -203,7 +213,7 @@ export function EquipmentCards({ initialItems = [] }: EquipmentCardsProps) {
                       aria-label={zoomed ? "Zoom out image" : "Zoom in image"}
                     >
                       <span className="equipment-modal-zoom-label">
-                        {zoomed ? "Click to zoom out" : "Click to zoom in"}
+                        {zoomed ? "Click to zoom out. Drag to pan." : "Click to zoom in. Pinch to zoom on touch."}
                       </span>
                     </button>
                   </>
