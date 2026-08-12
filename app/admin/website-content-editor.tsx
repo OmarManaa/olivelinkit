@@ -398,6 +398,7 @@ export function WebsiteContentEditor() {
             <label><span>Featured section eyebrow</span><input value={content.webDesignFeatureEyebrow} onChange={(event) => update("webDesignFeatureEyebrow", event.target.value)} /></label>
             <label><span>Featured section heading</span><input value={content.webDesignFeatureHeading} onChange={(event) => update("webDesignFeatureHeading", event.target.value)} /></label>
             <label className="full"><span>Featured section description</span><textarea rows={3} value={content.webDesignFeatureDescription} onChange={(event) => update("webDesignFeatureDescription", event.target.value)} /></label>
+            <label className="full"><span>Featured callout (general statement)</span><textarea rows={3} value={content.webDesignCallout ?? ""} onChange={(event) => update("webDesignCallout", event.target.value)} /></label>
             <label><span>Example website title</span><input value={content.webDesignExampleTitle} onChange={(event) => update("webDesignExampleTitle", event.target.value)} /></label>
             <label className="full"><span>Example website description</span><textarea rows={3} value={content.webDesignExampleDescription} onChange={(event) => update("webDesignExampleDescription", event.target.value)} /></label>
             <label><span>Example website URL</span><input value={content.webDesignExampleUrl} onChange={(event) => update("webDesignExampleUrl", event.target.value)} /></label>
