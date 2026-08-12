@@ -389,6 +389,22 @@ export function WebsiteContentEditor() {
                 <label className="full"><span>Highlight text</span><input value={highlight.text} onChange={(event) => updateHighlight(index, "text", event.target.value)} /></label>
               </div>
             ))}
+            <div className="content-field-group full"><strong>Web design page</strong></div>
+            <label><span>Page eyebrow</span><input value={content.webDesignEyebrow} onChange={(event) => update("webDesignEyebrow", event.target.value)} /></label>
+            <label><span>Page heading</span><input value={content.webDesignHeading} onChange={(event) => update("webDesignHeading", event.target.value)} /></label>
+            <label className="full"><span>Page lead copy</span><textarea rows={3} value={content.webDesignLead} onChange={(event) => update("webDesignLead", event.target.value)} /></label>
+            <label className="full"><span>Services section description</span><textarea rows={3} value={content.webDesignServiceDescription} onChange={(event) => update("webDesignServiceDescription", event.target.value)} /></label>
+            <div className="content-field-group full"><strong>Featured website example</strong></div>
+            <label><span>Featured section eyebrow</span><input value={content.webDesignFeatureEyebrow} onChange={(event) => update("webDesignFeatureEyebrow", event.target.value)} /></label>
+            <label><span>Featured section heading</span><input value={content.webDesignFeatureHeading} onChange={(event) => update("webDesignFeatureHeading", event.target.value)} /></label>
+            <label className="full"><span>Featured section description</span><textarea rows={3} value={content.webDesignFeatureDescription} onChange={(event) => update("webDesignFeatureDescription", event.target.value)} /></label>
+            <label><span>Example website title</span><input value={content.webDesignExampleTitle} onChange={(event) => update("webDesignExampleTitle", event.target.value)} /></label>
+            <label className="full"><span>Example website description</span><textarea rows={3} value={content.webDesignExampleDescription} onChange={(event) => update("webDesignExampleDescription", event.target.value)} /></label>
+            <label><span>Example website URL</span><input value={content.webDesignExampleUrl} onChange={(event) => update("webDesignExampleUrl", event.target.value)} /></label>
+            <label><span>Example button label</span><input value={content.webDesignExampleButton} onChange={(event) => update("webDesignExampleButton", event.target.value)} /></label>
+            <div className="content-field-group full"><strong>Call to action</strong></div>
+            <label><span>CTA heading</span><input value={content.webDesignCTAHeading} onChange={(event) => update("webDesignCTAHeading", event.target.value)} /></label>
+            <label className="full"><span>CTA text</span><textarea rows={3} value={content.webDesignCTAText} onChange={(event) => update("webDesignCTAText", event.target.value)} /></label>
             <div className="content-field-group full"><strong>Approved customer feedback</strong><button className="table-link table-button" onClick={addTestimonial} type="button">Add feedback</button></div>
             <label><span>Feedback eyebrow</span><input value={content.testimonialEyebrow} onChange={(event) => update("testimonialEyebrow", event.target.value)} /></label>
             <label><span>Feedback heading</span><input value={content.testimonialTitle} onChange={(event) => update("testimonialTitle", event.target.value)} /></label>

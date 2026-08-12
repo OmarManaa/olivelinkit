@@ -63,6 +63,19 @@ export type WebsiteContent = {
   servicesEyebrow: string;
   servicesTitle: string;
   servicesText: string;
+  webDesignEyebrow: string;
+  webDesignHeading: string;
+  webDesignLead: string;
+  webDesignServiceDescription: string;
+  webDesignFeatureEyebrow: string;
+  webDesignFeatureHeading: string;
+  webDesignFeatureDescription: string;
+  webDesignExampleTitle: string;
+  webDesignExampleDescription: string;
+  webDesignExampleUrl: string;
+  webDesignExampleButton: string;
+  webDesignCTAHeading: string;
+  webDesignCTAText: string;
   aboutEyebrow: string;
   aboutTitle: string;
   aboutText: string;
@@ -176,6 +189,19 @@ export const defaultWebsiteContent: WebsiteContent = {
   servicesEyebrow: "WHAT WE DO",
   servicesTitle: "Support for the technology and websites you rely on.",
   servicesText: "From a single slow laptop to a small-business website, get practical help without enterprise-sized complexity.",
+  webDesignEyebrow: "WEB DESIGN SERVICES",
+  webDesignHeading: "Website design and practical website support for Melbourne businesses",
+  webDesignLead: "Design, update, and maintain your small business website with straightforward guidance and reliable technical support.",
+  webDesignServiceDescription: "We build sensible websites and help local businesses keep their online presence working well. Whether you need a fresh site, better SEO, or ongoing web maintenance, we focus on clarity, performance, and real business results.",
+  webDesignFeatureEyebrow: "WEBSITE PORTFOLIO",
+  webDesignFeatureHeading: "Example website: Restore Cupping",
+  webDesignFeatureDescription: "Showcasing a health and wet cupping website built to be clean, easy to use, and search-friendly for local wellness clients.",
+  webDesignExampleTitle: "Restore Cupping",
+  webDesignExampleDescription: "Live website example built for a wet cupping practitioner, with modern wellness branding and simple appointment focus.",
+  webDesignExampleUrl: "https://restore-cupping.com/",
+  webDesignExampleButton: "Visit site",
+  webDesignCTAHeading: "Let us help you build or refresh your business website",
+  webDesignCTAText: "Reach out for a quick quote, website needs review, or design discussion backed by local IT support experience.",
   aboutEyebrow: "EXPERIENCED. PRACTICAL. ACCOUNTABLE.",
   aboutTitle: "More than a repair shop.",
   aboutText: "Support informed by real systems engineering experience across Windows and Linux, networking, Microsoft 365, virtualisation, backup and disaster recovery.",

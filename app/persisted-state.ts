@@ -2,6 +2,7 @@ export const persistedStateEntries = [
   { key: "site-content", storageKey: "it-services-website-content", eventName: "website-content-updated" },
   { key: "site-services", storageKey: "it-services-website-services", eventName: "website-services-updated" },
   { key: "site-pricing", storageKey: "it-services-website-pricing", eventName: "website-pricing-updated" },
+  { key: "site-portfolio", storageKey: "it-services-website-portfolio", eventName: "website-portfolio-updated" },
   { key: "inventory", storageKey: "it-services-inventory-items", eventName: "inventory-items-updated" },
   { key: "customers", storageKey: "it-services-customers", eventName: "customers-updated" },
   { key: "jobs", storageKey: "it-services-job-records", eventName: "jobs-updated" },

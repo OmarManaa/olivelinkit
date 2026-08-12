@@ -67,6 +67,9 @@ export function Sidebar({ adminEmail }: SidebarProps) {
         <Link aria-current={pathname.startsWith("/admin/site-content") ? "page" : undefined} className={pathname.startsWith("/admin/site-content") ? "active" : ""} href="/admin/site-content" onClick={closeMobileMenu}>
           <span>Website Content</span>
         </Link>
+        <Link aria-current={pathname.startsWith("/admin/site-portfolio") ? "page" : undefined} className={pathname.startsWith("/admin/site-portfolio") ? "active" : ""} href="/admin/site-portfolio" onClick={closeMobileMenu}>
+          <span>Website Portfolio</span>
+        </Link>
         <Link aria-current={pathname.startsWith("/admin/site-services") ? "page" : undefined} className={pathname.startsWith("/admin/site-services") ? "active" : ""} href="/admin/site-services" onClick={closeMobileMenu}>
           <span>Website Services</span>
         </Link>
