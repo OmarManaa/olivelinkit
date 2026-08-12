@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const ADMIN_EMAIL = "omar.manaa@gmail.com";
 const allowedTypes = new Set(["image/webp", "image/jpeg", "image/png"]);
-const allowedMediaPrefixes = ["equipment/", "favicon/", "hero/", "logo/"] as const;
+const allowedMediaPrefixes = ["equipment/", "favicon/", "hero/", "logo/", "portfolio/"] as const;
 
 async function isAdminRequest() {
   const user = await getChatGPTUser();
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
     if (file.size > 4 * 1024 * 1024) return Response.json({ error: "Keep the uploaded image below 4 MB." }, { status: 413 });
 
     const requestedFolder = formData.get("folder");
-    const folder = requestedFolder === "favicon" || requestedFolder === "hero" || requestedFolder === "logo" ? requestedFolder : "equipment";
+    const folder = requestedFolder === "favicon" || requestedFolder === "hero" || requestedFolder === "logo" || requestedFolder === "portfolio" ? requestedFolder : "equipment";
     const requestedName = formData.get("name");
     const imageName = slugifyName(typeof requestedName === "string" ? requestedName : file.name, `${folder}-image`);
     const key = `${folder}/${imageName}-${crypto.randomUUID().slice(0, 8)}.${extensionFor(file.type)}`;
