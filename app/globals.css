@@ -253,6 +253,11 @@ footer a{color:#536178;font-weight:800}
   .assistant-panel{grid-template-columns:1fr;margin-left:24px;margin-right:24px}
   .pricing-page-cta{grid-template-columns:1fr;margin-left:24px;margin-right:24px}
   .pricing-page-cta .button{justify-self:start}
+  .case-study-grid{grid-template-columns:1fr;gap:20px}
+  .case-study-card{grid-template-columns:1fr;gap:18px}
+  .case-study-image{min-width:auto;max-height:none;min-height:220px}
+  .case-study-links{justify-content:flex-start}
+  .case-study-links .button{width:100%;max-width:none}
 }
 @media(max-width:640px){
   .site-header{height:70px;margin:0 12px;padding:0 14px}
@@ -283,6 +288,11 @@ footer a{color:#536178;font-weight:800}
   .contact-actions .button{width:100%}
   footer{flex-direction:column;padding-bottom:88px}
   .public-site{padding-bottom:70px}.mobile-sticky-cta{position:fixed;z-index:30;left:14px;right:14px;bottom:12px;display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:8px;background:var(--blue);box-shadow:0 18px 38px rgba(37,99,235,.28);color:white;font-size:14px;font-weight:900}
+  .case-study-grid{gap:18px}
+  .case-study-card{grid-template-columns:1fr;gap:16px}
+  .case-study-image{min-height:180px;max-height:none}
+  .case-study-details h3{font-size:22px}
+  .case-study-links .button{width:100%}
 }
 @media(max-width:500px){
   .hero{max-width:390px;margin-left:0;margin-right:0}
