@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
-import { businessContact, supportEmailHref, whatsappHref } from "./contact-config";
+import { businessContact, phoneHref, supportEmailHref, whatsappHref } from "./contact-config";
 import { BrandLogo } from "./brand-logo";
 import type { InventoryItem } from "./admin/admin-data";
 import { EquipmentCards } from "./equipment-cards";
@@ -23,14 +23,23 @@ type HomePageClientProps = {
 };
 
 function structuredBusinessData(content: WebsiteContent) {
+  const phone = content.businessPhone || businessContact.phone;
   const data = {
     "@context": "https://schema.org",
     "@type": "ProfessionalService",
     name: content.businessLegalName || content.brandTitle,
     description: content.heroLead,
     email: content.contactEmail,
-    areaServed: content.locationText,
-    ...(content.businessPhone ? { telephone: content.businessPhone } : {}),
+    areaServed: "Doncaster East, Melbourne, VIC 3109", // Changed to full address
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Doncaster East",
+      addressLocality: "Melbourne",
+      addressRegion: "VIC",
+      postalCode: "3109",
+      addressCountry: "AU"
+    },
+    ...(phone ? { telephone: phone } : {}),
     ...(content.businessAbn ? { taxID: content.businessAbn } : {}),
   };
   return JSON.stringify(data).replace(/</g, "\\u003c");
@@ -47,6 +56,29 @@ function themeStyle(content: WebsiteContent) {
   } as CSSProperties;
 }
 
+const emergencyProblems = [
+  {
+    label: "Internet/NBN down?",
+    shortLabel: "NBN",
+    requestType: "Network or Wi-Fi",
+    service: "Networking & NBN",
+  },
+  {
+    label: "Computer crash?",
+    shortLabel: "PC",
+    requestType: "Computer repair",
+    service: "Computer Repairs",
+  },
+  {
+    label: "Website issue?",
+    shortLabel: "WEB",
+    requestType: "Quote request",
+    service: "Website issue",
+  },
+];
+
+const supportedPlatforms = ["HP", "Dell", "Lenovo", "Microsoft 365", "Telstra NBN", "Ubiquiti"];
+
 export function HomePageClient({ initialContent = defaultWebsiteContent, initialServices, initialPricing = defaultWebsitePricing, initialEquipment }: HomePageClientProps) {
   const [content, setContent] = useState<WebsiteContent>(initialContent);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,11 +90,22 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
   }, []);
 
   const contactWhatsApp = whatsappHref("Hi, I need help with IT support.", content.whatsappNumber);
+  const emergencyWhatsApp = whatsappHref("Hi, I need emergency IT support for my business.", content.whatsappNumber);
+  const supportPhone = content.businessPhone || businessContact.phone;
+  const supportCallHref = phoneHref(supportPhone);
   const consultingHref = `/?${new URLSearchParams({ requestType: "Business IT", service: "IT planning and technology advice" }).toString()}#support-assistant`;
   const popularServices = (initialServices ?? []).slice(0, 3);
 
+  // Full address for display
+  const fullAddress = "Doncaster East, Melbourne, VIC 3109";
+  const googleMapsUrl = "https://maps.google.com/?q=Doncaster+East+Melbourne+VIC+3109";
+
   return (
     <main className="public-site" id="main-content" style={themeStyle(content)}>
+      <a className="mobile-emergency-bar" href={supportCallHref || "#support-assistant"}>
+        <span>Emergency support</span>
+        <strong>{supportPhone ? `Call ${supportPhone}` : "Request IT help"}</strong>
+      </a>
       <a className="skip-link" href="#services">Skip to services</a>
       <script dangerouslySetInnerHTML={{ __html: structuredBusinessData(content) }} type="application/ld+json" />
       <header className="site-header">
@@ -122,6 +165,9 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
               See all services
             </a>
           </div>
+          <a className="button button-light" href={supportCallHref || "#support-assistant"} onClick={() => setMobileMenuOpen(false)}>
+            {supportPhone ? `Call now: ${supportPhone}` : "Emergency support"}
+          </a>
           <a className="button" href="#support-assistant" onClick={() => setMobileMenuOpen(false)}>Request IT help</a>
         </nav>
       </header>
@@ -129,12 +175,50 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow">{content.heroEyebrow}</p>
+          <div className="availability-strip" aria-label="Emergency availability">
+            <span className="live-dot" />
+            <span>Available for emergency calls now</span>
+            <b>Emergency calls prioritised</b>
+          </div>
           <h1 id="hero-title">
-            {content.heroTitle}
-            <br />
-            <span>{content.heroAccent}</span>
+            <span className="hero-title-desktop">
+              {content.heroTitle}
+              <br />
+              <span className="hero-accent">{content.heroAccent}</span>
+            </span>
+            <span className="hero-title-mobile">Fast IT Emergency Help</span>
           </h1>
-          <p className="hero-lead">{content.heroLead}</p>
+          <p className="hero-lead">
+            <span className="hero-lead-desktop">{content.heroLead}</span>
+            <span className="hero-lead-mobile">NBN down, PC crashed, email locked out, or website offline? Call for practical Melbourne IT support.</span>
+          </p>
+          <div className="emergency-actions" aria-label="Emergency contact options">
+            <a className="button emergency-call-button" href={supportCallHref || "#support-assistant"}>
+              Call now
+              {supportPhone && <span>{supportPhone}</span>}
+            </a>
+            {emergencyWhatsApp && <a className="button button-ghost" href={emergencyWhatsApp}>WhatsApp</a>}
+          </div>
+          <p className="hero-promise">Remote triage now | Onsite Melbourne visits | Clear pricing before work starts</p>
+          <div className="problem-selector" aria-label="Choose the problem you need fixed">
+            <p>What is broken?</p>
+            <div className="problem-buttons">
+              {emergencyProblems.map((problem) => {
+                const href = `/?${new URLSearchParams({ requestType: problem.requestType, service: problem.service }).toString()}#support-assistant`;
+                return (
+                  <a className="problem-card" href={href} key={problem.label}>
+                    <b>{problem.shortLabel}</b>
+                    <span>{problem.label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+          <div className="supported-brands" aria-label="Brands and platforms supported">
+            <span>We help with</span>
+            {supportedPlatforms.map((platform) => <span key={platform}>{platform}</span>)}
+          </div>
+          <a className="project-link" href="/web-design">Looking for a new website? Start here.</a>
           <div className="hero-actions">
             <a className="button" href="#support-assistant">
               {content.heroPrimaryCta}
@@ -145,7 +229,8 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
             </a>
           </div>
           <div className="hero-facts" aria-label="Service details">
-            <span>{content.locationText}</span>
+            {/* CHANGED: Now shows full address */}
+            <span>📍 {fullAddress}</span>
             <span>{content.businessHours}</span>
             <span>{content.responseExpectation}</span>
           </div>
@@ -308,13 +393,29 @@ export function HomePageClient({ initialContent = defaultWebsiteContent, initial
             {content.contactButton}
           </a>
           {contactWhatsApp && <a className="button button-ghost" href={contactWhatsApp}>WhatsApp quick message</a>}
-          <span>{content.locationText || `${businessContact.location} - By arrangement`}</span>
+          {/* CHANGED: Shows full address with Google Maps link */}
+          <span>
+            📍 <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'underline' }}
+            >
+              {fullAddress}
+            </a>
+          </span>
         </div>
       </section>
 
-      <a className="mobile-sticky-cta" href="#support-assistant">Request IT help</a>
+      <a className="mobile-sticky-cta" href={supportCallHref || "#support-assistant"}>
+        {supportPhone ? `Call emergency support: ${supportPhone}` : "Request emergency IT help"}
+      </a>
       <footer>
-        <span>{content.footerText}{content.businessAbn ? ` | ABN ${content.businessAbn}` : ""}</span>
+        {/* CHANGED: Footer now shows full address */}
+        <span>
+          {content.footerText} | 📍 {fullAddress}
+          {content.businessAbn ? ` | ABN ${content.businessAbn}` : ""}
+        </span>
         <Link href="/privacy">Privacy</Link>
       </footer>
     </main>

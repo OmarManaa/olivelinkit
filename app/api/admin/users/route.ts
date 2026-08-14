@@ -1,6 +1,6 @@
 import { getDb } from "../../../../db";
 import { admins } from "../../../../db/schema";
-import { isAdminRequest } from "../../../app/admin/admin-server";
+import { isAdminRequest } from "../../../admin/admin-server";
 
 export const dynamic = "force-dynamic";
 

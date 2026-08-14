@@ -9,12 +9,12 @@ function staticMetadata(iconUrl: string): Metadata {
   return {
     metadataBase: new URL(siteUrl),
     title: {
-      default: "OliveLink IT | Melbourne IT Support & Website Design",
-      template: "%s | OliveLink IT",
+      default: "OliveLink IT Solutions | Melbourne IT Support & Website Design",
+      template: "%s | OliveLink IT Solutions",
     },
     description: "Practical computer repairs, networking, business IT, website design, and data recovery services for Melbourne small businesses.",
     openGraph: {
-      title: "OliveLink IT | IT Support, Website Design & Data Recovery",
+      title: "OliveLink IT Solutions | IT Support, Website Design & Data Recovery",
       description: "Reliable IT support, website design, web support, and recovery services for Melbourne businesses.",
       type: "website",
       locale: "en_AU",
@@ -22,7 +22,7 @@ function staticMetadata(iconUrl: string): Metadata {
     },
     twitter: {
       card: "summary_large_image",
-      title: "OliveLink IT | Website Design & Small Business IT Support",
+      title: "OliveLink IT Solutions | Website Design & Small Business IT Support",
       description: "Website design, IT support, remote help, and data recovery services for Melbourne small businesses.",
     },
     icons: {

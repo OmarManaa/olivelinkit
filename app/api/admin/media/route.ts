@@ -1,7 +1,7 @@
 import { getBucket, getDb } from "../../../../db";
 import { appState, supportRequests } from "../../../../db/schema";
 import { getChatGPTUser } from "../../../chatgpt-auth";
-import { isAdminRequest } from "../../../app/admin/admin-server";
+import { isAdminRequest } from "../../../admin/admin-server";
 
 export const dynamic = "force-dynamic";
 const allowedTypes = new Set(["image/webp", "image/jpeg", "image/png"]);

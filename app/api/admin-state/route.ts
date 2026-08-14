@@ -3,23 +3,22 @@ import { getDb } from "../../../db";
 import { appState } from "../../../db/schema";
 import { getChatGPTUser } from "../../chatgpt-auth";
 import { isPersistedStateKey } from "../../persisted-state";
+import { isAdminRequest } from "../../admin/admin-server";
 
 export const dynamic = "force-dynamic";
 
 const ADMIN_EMAIL = "omar.manaa@gmail.com";
 
-async function isAdminRequest() {
-  const user = await getChatGPTUser();
-import { isAdminRequest } from "../../../app/admin/admin-server";
-  return user?.email.toLowerCase() === ADMIN_EMAIL || (process.env.NODE_ENV === "development" && !user);
-}
-
 function allowedRequestOrigin(request: Request) {
-  const origin = request.headers.get("origin");
+  try {
+    const origin = request.headers.get("origin");
+    if (!origin) return null;
+    const url = new URL(origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return origin;
   } catch {
-    // invalid origin header
+    return null;
   }
-  return null;
 }
 
 function withCors(request: Request, response: Response) {

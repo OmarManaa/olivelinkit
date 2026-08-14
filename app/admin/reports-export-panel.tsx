@@ -157,7 +157,7 @@ function ReportDocument({ brand, data, type }: { brand: WebsiteContent; data: Re
         </>
       )}
 
-      <footer className="report-export-footer">Prepared from the current records in OliveLink IT Business Console.</footer>
+      <footer className="report-export-footer">Prepared from the current records in OliveLink IT Solutions Business Console.</footer>
     </article>
   );
 }

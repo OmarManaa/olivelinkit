@@ -5,16 +5,16 @@ import { businessContact } from "../contact-config";
 
 export const metadata: Metadata = {
   title: "Privacy",
-  description: "How OliveLink IT uses enquiry details.",
+  description: "How OliveLink IT Solutions uses enquiry details.",
 };
 
 export default function PrivacyPage() {
   return (
     <main className="policy-page">
       <header className="policy-header">
-        <Link className="brand" href="/" aria-label="Return to OliveLink IT home">
+        <Link className="brand" href="/" aria-label="Return to OliveLink IT Solutions home">
           <BrandLogo />
-          <span><strong>OliveLink IT</strong><small>PRIVACY</small></span>
+          <span><strong>OliveLink IT Solutions</strong><small>PRIVACY</small></span>
         </Link>
         <Link className="button button-ghost button-small" href="/">Back to website</Link>
       </header>

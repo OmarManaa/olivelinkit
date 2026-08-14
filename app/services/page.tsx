@@ -4,7 +4,7 @@ import { getPublishedSiteData } from "../site-data-server";
 import { ServiceCards } from "../service-cards";
 
 export const metadata: Metadata = {
-  title: "OliveLink IT Services",
+  title: "OliveLink IT Solutions Services",
   description: "Explore IT support, website design, network services, computer repairs, and data recovery services in Melbourne.",
 };
 
@@ -13,8 +13,8 @@ export default async function ServicesPage() {
   return (
     <main className="public-site">
       <header className="site-header">
-        <Link className="brand" href="/" aria-label="Return to OliveLink IT home">
-          <strong>OliveLink IT</strong>
+        <Link className="brand" href="/" aria-label="Return to OliveLink IT Solutions home">
+          <strong>OliveLink IT Solutions</strong>
           <small>SERVICES</small>
         </Link>
         <Link className="button button-ghost button-small" href="/">Back to website</Link>

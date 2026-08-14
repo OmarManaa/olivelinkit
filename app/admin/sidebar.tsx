@@ -16,7 +16,6 @@ const workspaceLinks = [
   ["Equipment Sales", "/admin/equipment"],
   ["Follow-ups", "/admin/followups"],
   ["Reports", "/admin/reports"],
-  ["Admin Users", "/admin/users"],
 ];
 
 type SidebarProps = {
@@ -48,7 +47,7 @@ export function Sidebar({ adminEmail }: SidebarProps) {
       <div className="sidebar-brand">
         <BrandLogo />
         <span>
-          <strong>OliveLink IT</strong>
+          <strong>OliveLink IT Solutions</strong>
           <small>BUSINESS CONSOLE</small>
         </span>
       </div>
@@ -77,6 +76,9 @@ export function Sidebar({ adminEmail }: SidebarProps) {
         <Link aria-current={pathname.startsWith("/admin/service-pricing") ? "page" : undefined} className={pathname.startsWith("/admin/service-pricing") ? "active" : ""} href="/admin/service-pricing" onClick={closeMobileMenu}>
           <span>Service Pricing</span>
         </Link>
+        <Link aria-current={pathname.startsWith("/admin/users") ? "page" : undefined} className={pathname.startsWith("/admin/users") ? "active" : ""} href="/admin/users" onClick={closeMobileMenu}>
+          <span>Admin Users</span>
+        </Link>
         <Link aria-current={pathname.startsWith("/admin/backup") ? "page" : undefined} className={pathname.startsWith("/admin/backup") ? "active" : ""} href="/admin/backup" onClick={closeMobileMenu}>
           <span>Backup & Restore</span>
         </Link>
@@ -86,6 +88,10 @@ export function Sidebar({ adminEmail }: SidebarProps) {
       </nav>
       <div className="sidebar-footer">
         <div className="admin-user">Administrator<br />{adminEmail}</div>
+        <div className="sidebar-footer-actions">
+          <Link className="button button-ghost button-small" href="/admin/settings">Change password</Link>
+          <a className="button button-ghost button-small" href="/admin/logout">Log out</a>
+        </div>
       </div>
       </aside>
     </>

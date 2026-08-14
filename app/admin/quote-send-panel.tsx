@@ -86,7 +86,7 @@ export function QuoteSendPanel({ quotes, customers }: QuoteSendPanelProps) {
     "",
     "Regards,",
     "Omar",
-    "OliveLink IT",
+    "OliveLink IT Solutions",
   ].join("\n");
   const whatsappBody = `Hi ${quote.customer}, I have prepared quote ${quote.reference} for ${quote.title}. Total is ${formatMoney(quote.total)} including GST, expiring ${quote.expiresAt}. I have sent the details by email. Please reply if you approve or have any questions. Regards, Omar`;
   const emailHref = `mailto:${email}?${new URLSearchParams({ subject, body: emailBody }).toString()}`;

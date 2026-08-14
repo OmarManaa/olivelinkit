@@ -41,7 +41,7 @@ function conversionDetails(request: SupportRequest) {
 function templateFor(request: SupportRequest) {
   const base = templates[request.issueType as keyof typeof templates] ?? templates["Computer repair"];
   const selectedContext = selectedContextSummary(request);
-  return `Hi ${request.name},\n\n${base}${selectedContext ? `\n\nClicked item/service:\n${selectedContext}` : ""}\n\nYour request summary:\n${request.details}\n\nRegards,\nOmar\nOliveLink IT`;
+  return `Hi ${request.name},\n\n${base}${selectedContext ? `\n\nClicked item/service:\n${selectedContext}` : ""}\n\nYour request summary:\n${request.details}\n\nRegards,\nOmar\nOliveLink IT Solutions`;
 }
 
 function contactSummary(request: SupportRequest) {

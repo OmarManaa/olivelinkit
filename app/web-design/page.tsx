@@ -4,7 +4,7 @@ import { getPublishedSiteData } from "../site-data-server";
 import WebDesignCallout from "./web-design-callout";
 
 export const metadata: Metadata = {
-  title: "Web Design & Website Support | OliveLink IT",
+  title: "Web Design & Website Support | OliveLink IT Solutions",
   description: "Website design, business website support, and web presence services for Melbourne small businesses, including wet cupping and health practice websites.",
 };
 
@@ -13,8 +13,8 @@ export default async function WebDesignPage() {
   return (
     <main className="public-site">
       <header className="site-header">
-        <Link className="brand" href="/" aria-label="Return to OliveLink IT home">
-          <strong>OliveLink IT</strong>
+        <Link className="brand" href="/" aria-label="Return to OliveLink IT Solutions home">
+          <strong>OliveLink IT Solutions</strong>
           <small>WEB DESIGN</small>
         </Link>
         <Link className="button button-ghost button-small" href="/">Back to website</Link>

@@ -37,7 +37,7 @@ function followupMessage(item: Followup) {
     "",
     "Regards,",
     "Omar",
-    "OliveLink IT",
+    "OliveLink IT Solutions",
   ].filter(Boolean).join("\n");
 }
 
