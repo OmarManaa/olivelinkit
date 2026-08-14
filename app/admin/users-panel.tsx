@@ -1,20 +1,25 @@
 "use client";
 
+import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 
-type Admin = { email: string; name?: string | null; role?: string | null; active?: number };
+type Admin = { email: string; name?: string | null; role?: string | null; active?: boolean | number | null };
+
+function isAdminActive(item: Admin) {
+  return item.active === true || item.active === 1;
+}
 
 export default function UsersPanel() {
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
 
-  async function load() {
+  async function refreshAdmins() {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users', { cache: 'no-store' });
+      const res = await fetch("/api/admin/users", { cache: "no-store" });
       const payload = await res.json();
       setAdmins(payload.items ?? []);
     } catch {
@@ -24,24 +29,44 @@ export default function UsersPanel() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    let ignore = false;
 
-  async function addAdmin(e: React.FormEvent) {
+    void fetch("/api/admin/users", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((payload) => {
+        if (!ignore) setAdmins(payload.items ?? []);
+      })
+      .catch(() => {
+        // ignore
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  async function addAdmin(e: FormEvent) {
     e.preventDefault();
     if (!email) return;
-    await fetch('/api/admin/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, name, role }) });
-    setEmail(''); setName(''); setRole('');
-    await load();
+    await fetch("/api/admin/users", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, name, role }) });
+    setEmail("");
+    setName("");
+    setRole("");
+    await refreshAdmins();
   }
 
   async function toggleActive(item: Admin) {
-    await fetch('/api/admin/users', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: item.email, active: !(item.active === 1) }) });
-    await load();
+    await fetch("/api/admin/users", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: item.email, active: !isAdminActive(item) }) });
+    await refreshAdmins();
   }
 
   async function removeAdmin(item: Admin) {
-    await fetch(`/api/admin/users?email=${encodeURIComponent(item.email)}`, { method: 'DELETE' });
-    await load();
+    await fetch(`/api/admin/users?email=${encodeURIComponent(item.email)}`, { method: "DELETE" });
+    await refreshAdmins();
   }
 
   return (
@@ -54,7 +79,7 @@ export default function UsersPanel() {
         <button type="submit">Add admin</button>
       </form>
       <div>
-        {loading ? <div>Loading…</div> : (
+        {loading ? <div>Loading...</div> : (
           <table>
             <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Active</th><th /></tr></thead>
             <tbody>
@@ -63,7 +88,7 @@ export default function UsersPanel() {
                   <td>{a.email}</td>
                   <td>{a.name}</td>
                   <td>{a.role}</td>
-                  <td>{a.active === 1 ? 'Yes' : 'No'}</td>
+                  <td>{isAdminActive(a) ? "Yes" : "No"}</td>
                   <td>
                     <button onClick={() => void toggleActive(a)}>Toggle</button>
                     <button onClick={() => void removeAdmin(a)}>Delete</button>

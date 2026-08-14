@@ -1,12 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb, getRuntimeEnvironment } from "../../../db";
 import { supportRequests } from "../../../db/schema";
-import { getChatGPTUser } from "../../chatgpt-auth";
+import { isAdminRequest } from "../../admin/admin-auth";
 import type { SupportRequest } from "../../support-requests-store";
 
 export const dynamic = "force-dynamic";
 
-const ADMIN_EMAIL = "omar.manaa@gmail.com";
 const allowedStatuses = ["New", "Replied", "Follow-up", "Converted", "Closed"] as const;
 
 function trimmed(value: unknown, maximum: number) {
@@ -81,11 +80,6 @@ function dbValues(record: SupportRequest): typeof supportRequests.$inferInsert {
     createdAt: record.createdAt,
     lastAction: record.lastAction,
   };
-}
-
-async function isAdminRequest() {
-  const user = await getChatGPTUser();
-  return user?.email.toLowerCase() === ADMIN_EMAIL || (process.env.NODE_ENV === "development" && !user);
 }
 
 function allowedRequestOrigin(request: Request) {

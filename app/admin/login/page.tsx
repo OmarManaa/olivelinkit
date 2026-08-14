@@ -1,24 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { useState } from "react";
 import { BrandLogo } from "../../brand-logo";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState("omarmanaa");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
+
     setError("");
     setIsSubmitting(true);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 15_000);
 
     try {
       const response = await fetch("/api/admin/login", {
         method: "POST",
+        credentials: "include",
+        signal: controller.signal,
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
@@ -31,11 +36,17 @@ export default function AdminLoginPage() {
         return;
       }
 
-      router.push("/admin");
-      router.refresh();
-    } catch {
-      setError("Unable to sign in right now. Please try again.");
+      window.setTimeout(() => {
+        setError("Signed in, but the dashboard did not open. Please try opening /admin again.");
+        setIsSubmitting(false);
+      }, 8_000);
+      window.location.assign("/admin");
+    } catch (err) {
+      const timedOut = err instanceof DOMException && err.name === "AbortError";
+      setError(timedOut ? "Signing in timed out. Please check the password and try again." : "Unable to sign in right now. Please try again.");
       setIsSubmitting(false);
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 

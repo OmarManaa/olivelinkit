@@ -1,4 +1,4 @@
-import { WebsiteServicesEditor } from "../website-services-editor";
+import { WebsiteServicesEditor } from "../../website-services-editor";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";

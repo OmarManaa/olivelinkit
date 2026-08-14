@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BrandLogo } from "../../brand-logo";
+import { BrandLogo } from "../../../brand-logo";
 
 export default function AdminSettingsPage() {
   const [currentUsername, setCurrentUsername] = useState("omarmanaa");

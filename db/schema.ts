@@ -32,7 +32,7 @@ export const admins = sqliteTable("admins", {
   email: text("email").primaryKey(),
   name: text("name"),
   role: text("role"),
-  active: integer("active", { mode: "boolean" }).notNull().default(1),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   createdBy: text("created_by"),
 });

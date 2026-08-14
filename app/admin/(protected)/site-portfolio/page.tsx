@@ -1,4 +1,4 @@
-import { WebsitePortfolioEditor } from "../website-portfolio-editor";
+import { WebsitePortfolioEditor } from "../../website-portfolio-editor";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";

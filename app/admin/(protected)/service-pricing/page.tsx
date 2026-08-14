@@ -1,4 +1,4 @@
-import { ServicePricingEditor } from "../service-pricing-editor";
+import { ServicePricingEditor } from "../../service-pricing-editor";
 
 export const dynamic = "force-dynamic";
 

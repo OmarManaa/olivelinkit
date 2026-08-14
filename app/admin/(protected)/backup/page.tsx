@@ -1,4 +1,4 @@
-import { BackupRestorePanel } from "../backup-restore-panel";
+import { BackupRestorePanel } from "../../backup-restore-panel";
 
 export const dynamic = "force-dynamic";
 

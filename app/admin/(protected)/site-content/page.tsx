@@ -1,4 +1,4 @@
-import { WebsiteContentEditor } from "../website-content-editor";
+import { WebsiteContentEditor } from "../../website-content-editor";
 
 export const dynamic = "force-dynamic";
 

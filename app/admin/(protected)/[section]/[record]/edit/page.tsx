@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSections, customers, followups, inventory, jobs, quotes, type AdminSection } from "../../../admin-data";
-import { InventoryItemForm } from "../../../inventory-item-form";
-import { CustomerRecordForm } from "../../../customer-record-form";
-import { JobRecordForm } from "../../../job-record-form";
-import { QuoteEditForm } from "../../../quote-edit-form";
+import { adminSections, customers, followups, inventory, jobs, quotes, type AdminSection } from "../../../../admin-data";
+import { InventoryItemForm } from "../../../../inventory-item-form";
+import { CustomerRecordForm } from "../../../../customer-record-form";
+import { JobRecordForm } from "../../../../job-record-form";
+import { QuoteEditForm } from "../../../../quote-edit-form";
 
 export const dynamic = "force-dynamic";
 

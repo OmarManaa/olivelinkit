@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { followups, inventory, invoices, jobs, quotes } from "./admin-data";
-import { DashboardConsole } from "./dashboard-console";
+import { followups, inventory, invoices, jobs, quotes } from "../admin-data";
+import { DashboardConsole } from "../dashboard-console";
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { followups, inventory, invoices, jobs, quotes } from "../../admin-data";
-import { ReportsExportPanel } from "../../reports-export-panel";
+import { followups, inventory, invoices, jobs, quotes } from "../../../admin-data";
+import { ReportsExportPanel } from "../../../reports-export-panel";
 
 export const dynamic = "force-dynamic";
 

@@ -1,13 +1,10 @@
 import { getBucket, getDb } from "../../../../db";
 import { appState, supportRequests } from "../../../../db/schema";
-import { getChatGPTUser } from "../../../chatgpt-auth";
-import { isAdminRequest } from "../../../admin/admin-server";
+import { isAdminRequest } from "../../../admin/admin-auth";
 
 export const dynamic = "force-dynamic";
 const allowedTypes = new Set(["image/webp", "image/jpeg", "image/png"]);
 const allowedMediaPrefixes = ["equipment/", "favicon/", "hero/", "logo/", "portfolio/"] as const;
-
-// server-side admin check uses centralized helper `isAdminRequest`
 
 function extensionFor(type: string) {
   if (type === "image/jpeg") return "jpg";
@@ -90,7 +87,7 @@ async function getUsedMediaKeys() {
 }
 
 async function listUploadedMedia() {
-  const objects: R2Object[] = [];
+  const objects: Array<{ key: string; size: number; uploaded: Date }> = [];
 
   for (const prefix of allowedMediaPrefixes) {
     let cursor: string | undefined;

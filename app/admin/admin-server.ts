@@ -1,13 +1,14 @@
+import { eq } from "drizzle-orm";
 import { getDb } from "../../db";
 import { admins } from "../../db/schema";
 import { getChatGPTUser } from "../chatgpt-auth";
 
-export async function isAdminRequest(): Promise<boolean> {
+export async function isCloudflareAdminRequest(): Promise<boolean> {
   try {
     const user = await getChatGPTUser();
     if (!user?.email) return false;
     const db = getDb();
-    const rows = await db.select().from(admins).where({ email: user.email.toLowerCase() as any });
+    const rows = await db.select().from(admins).where(eq(admins.email, user.email.toLowerCase()));
     if (rows.length > 0) return Boolean(rows[0].active);
     // fallback: allow a single env-configured admin in development
     if (process.env.NODE_ENV === "development" && user.email.toLowerCase() === (process.env.ADMIN_EMAIL ?? "").toLowerCase()) return true;

@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { adminSections, customers, followups, inventory, invoices, jobs, quotes, type AdminSection } from "../admin-data";
-import { InventoryTable } from "../inventory-table";
-import { InvoicesTable } from "../invoices-table";
-import { QuotesTable } from "../quotes-table";
-import { RequestsInbox } from "../requests-inbox";
-import { JobsTable } from "../jobs-table";
-import { CustomersTable } from "../customers-table";
-import { FollowupsTable } from "../followups-table";
-import { ReportsConsole } from "../reports-console";
+import { adminSections, customers, followups, inventory, invoices, jobs, quotes, type AdminSection } from "../../admin-data";
+import { InventoryTable } from "../../inventory-table";
+import { InvoicesTable } from "../../invoices-table";
+import { QuotesTable } from "../../quotes-table";
+import { RequestsInbox } from "../../requests-inbox";
+import { JobsTable } from "../../jobs-table";
+import { CustomersTable } from "../../customers-table";
+import { FollowupsTable } from "../../followups-table";
+import { ReportsConsole } from "../../reports-console";
 
 export const dynamic = "force-dynamic";
 

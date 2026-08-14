@@ -90,7 +90,7 @@ export function Sidebar({ adminEmail }: SidebarProps) {
         <div className="admin-user">Administrator<br />{adminEmail}</div>
         <div className="sidebar-footer-actions">
           <Link className="button button-ghost button-small" href="/admin/settings">Change password</Link>
-          <a className="button button-ghost button-small" href="/admin/logout">Log out</a>
+          <Link className="button button-ghost button-small" href="/admin/logout">Log out</Link>
         </div>
       </div>
       </aside>

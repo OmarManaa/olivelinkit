@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { customers, quotes } from "../../admin-data";
-import { QuoteSendPanel } from "../../quote-send-panel";
+import { customers, quotes } from "../../../admin-data";
+import { QuoteSendPanel } from "../../../quote-send-panel";
 
 export const dynamic = "force-dynamic";
 

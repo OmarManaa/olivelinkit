@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getDb } from "../../db";
 import { appState } from "../../db/schema";
 import { getChatGPTUser } from "../chatgpt-auth";
-import { isAdminRequest } from "./admin-server";
+import { isCloudflareAdminRequest } from "./admin-server";
 
 export const ADMIN_EMAIL = "omar.manaa@gmail.com";
 export const ADMIN_SESSION_COOKIE = "olive_admin_session";
@@ -12,14 +12,14 @@ export const ADMIN_CONFIG_KEY = "admin_login";
 export const ADMIN_USERNAME = (process.env.ADMIN_USERNAME ?? "omarmanaa").trim();
 export const ADMIN_PASSWORD = (process.env.ADMIN_PASSWORD ?? "OliveLinkIT2026!").trim();
 
-function decodeAdminSession(value: string | undefined) {
+function decodeAdminSession(value: string | undefined): { username: string; issuedAt: number } | null {
   if (!value) return null;
 
   try {
     const decoded = Buffer.from(value, "base64url").toString("utf8");
     const parsed = JSON.parse(decoded) as { username?: string; issuedAt?: number };
     if (!parsed.username || typeof parsed.issuedAt !== "number") return null;
-    return parsed;
+    return { username: parsed.username, issuedAt: parsed.issuedAt };
   } catch {
     return null;
   }
@@ -91,7 +91,13 @@ export async function setAdminSession(username: string) {
 
 export async function clearAdminSession() {
   const cookieStore = await cookies();
-  cookieStore.delete(ADMIN_SESSION_COOKIE);
+  cookieStore.set(ADMIN_SESSION_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 export async function hasValidAdminSession() {
@@ -104,6 +110,20 @@ export async function hasValidAdminSession() {
   return session.username.toLowerCase() === active.username.toLowerCase();
 }
 
+export async function isAdminRequest() {
+  let user = null;
+
+  try {
+    user = await getChatGPTUser();
+  } catch {
+    user = null;
+  }
+
+  if (user?.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return true;
+  if (await isCloudflareAdminRequest()) return true;
+  return hasValidAdminSession();
+}
+
 export async function requireAdmin() {
   let user = null;
 
@@ -113,7 +133,7 @@ export async function requireAdmin() {
     user = null;
   }
 
-  const cloudflareAllowed = user ? await isAdminRequest() : false;
+  const cloudflareAllowed = user ? await isCloudflareAdminRequest() : false;
   if (cloudflareAllowed) return user;
 
   if (user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return user;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminSections, type AdminSection } from "../../admin-data";
+import { adminSections, type AdminSection } from "../../../admin-data";
 import { AdminRecordForm } from "./admin-record-form";
 
 export const dynamic = "force-dynamic";

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authenticateAdminCredentials, getActiveAdminCredentials, setAdminSession, setStoredAdminCredentials } from "../../../admin/admin-auth";
+import { getActiveAdminCredentials, setAdminSession, setStoredAdminCredentials } from "../../../admin/admin-auth";
 
 export const dynamic = "force-dynamic";
 

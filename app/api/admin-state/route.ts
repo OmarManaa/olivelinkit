@@ -1,13 +1,10 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { appState } from "../../../db/schema";
-import { getChatGPTUser } from "../../chatgpt-auth";
 import { isPersistedStateKey } from "../../persisted-state";
-import { isAdminRequest } from "../../admin/admin-server";
+import { isAdminRequest } from "../../admin/admin-auth";
 
 export const dynamic = "force-dynamic";
-
-const ADMIN_EMAIL = "omar.manaa@gmail.com";
 
 function allowedRequestOrigin(request: Request) {
   try {
